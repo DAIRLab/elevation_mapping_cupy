@@ -518,17 +518,28 @@ bool ElevationMappingNode::initializeMap(elevation_map_msgs::Initialize::Request
       }
     }
     std::string method;
-    switch (request.method) {
-      case request.NEAREST:
-        method = "nearest";
-        break;
-      case request.LINEAR:
-        method = "linear";
-        break;
-      case request.CUBIC:
-        method = "cubic";
-        break;
+
+    if (request.method == request.NEAREST) {
+      method = "nearest";
+    } else if (request.method == request.LINEAR) {
+      method = "linear";
+    } else if (request.method == request.CUBIC) {
+      method = "cubic";
+    } else {
+      throw std::logic_error("invlaid request interpolation method");
     }
+
+    // switch (request.method) {
+    //   case request.NEAREST:
+    //     method = "nearest";
+    //     break;
+    //   case request.LINEAR:
+    //     method = "linear";
+    //     break;
+    //   case request.CUBIC:
+    //     method = "cubic";
+    //     break;
+    // }
     ROS_INFO_STREAM("Initializing map with points using " << method);
     map_.initializeWithPoints(points, method);
   }
