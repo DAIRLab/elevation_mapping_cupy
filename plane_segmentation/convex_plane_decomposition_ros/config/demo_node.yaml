@@ -1,8 +1,8 @@
 elevation_topic: '/elevation_mapping/elevation_map_raw'
 height_layer: 'elevation'
-target_frame_id: 'odom'
+target_frame_id: 'map'
 submap:
-  width: 8.0
-  length: 8.0
+  width: 2.5
+  length: 2.5
 publish_to_controller: true
 frequency: 1.0

@@ -1,7 +1,7 @@
 #### Basic parameters ########
-resolution: 0.04                                # resolution in m.
-map_length: 8                                  # map's size in m.
-sensor_noise_factor: 0.05                       # point's noise is sensor_noise_factor*z^2 (z is distance from sensor).
+resolution: 0.02                                # resolution in m.
+map_length: 2.5                                 # map's size in m.
+sensor_noisefactor: 0.05                        # point's noise is sensor_noise_factor*z^2 (z is distance from sensor).
 mahalanobis_thresh: 2.0                         # points outside this distance is outlier.
 outlier_variance: 0.01                          # if point is outlier, add this value to the cell.
 drift_compensation_variance_inler: 0.05         # cells under this value is used for drift compensation.
@@ -40,9 +40,9 @@ max_unsafe_n: 10                                # if the number of cells under s
 overlap_clear_range_xy: 4.0                     # xy range [m] for clearing overlapped area. this defines the valid area for overlap clearance. (used for multi floor setting)
 overlap_clear_range_z: 2.0                      # z range [m] for clearing overlapped area. cells outside this range will be cleared. (used for multi floor setting)
 
-map_frame: 'odom'                               # The map frame where the odometry source uses.
-base_frame: 'base'                              # The robot's base frame. This frame will be a center of the map.
-corrected_map_frame: 'corrected_odom'
+map_frame: 'map'                               # The map frame where the odometry source uses.
+base_frame: 'pelvis'                              # The robot's base frame. This frame will be a center of the map.
+corrected_map_frame: 'corrected_map'
 
 #### Feature toggles ########
 enable_edge_sharpen: true
@@ -54,8 +54,8 @@ enable_drift_corrected_TF_publishing: false
 enable_normal_color: false                      # If true, the map contains 'color' layer corresponding to normal. Add 'color' layer to the publishers setting if you want to visualize.
 
 #### Traversability filter ########
-use_chainer: false                              # Use chainer as a backend of traversability filter or pytorch. If false, it uses pytorch. pytorch requires ~2GB more GPU memory compared to chainer but runs faster.
-weight_file: '$(rospack find elevation_mapping_cupy)/config/weights.dat'               # Weight file for traversability filter
+use_chainer: false                              # Use chainer as a  of traversability filter or pytorch. If false, it uses pytorch. pytorch requires ~2GB more GPU memory compared to chainer but runs faster.
+weight_file: '$(rospack find elevation_mapping_cupy)/config/weights.backenddat'               # Weight file for traversability filter
 
 #### Upper bound ########
 use_only_above_for_upper_bound: false
@@ -64,13 +64,7 @@ use_only_above_for_upper_bound: false
 plugin_config_file: '$(rospack find elevation_mapping_cupy)/config/plugin_config.yaml'
 
 #### Subscribers ########
-pointcloud_topics: ['/depth_camera_front/depth/color/points',
-                    '/depth_camera_rear/depth/color/points',
-                    '/depth_camera_left/depth/color/points',
-                    '/depth_camera_right/depth/color/points',
-                    '/robot_self_filter/bpearl_front/point_cloud',
-                    '/robot_self_filter/bpearl_rear/point_cloud'
-                    ]
+pointcloud_topics: ['/points']
 
 #### Publishers ########
 # topic_name:
