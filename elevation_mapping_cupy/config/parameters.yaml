@@ -55,7 +55,7 @@ enable_normal_color: false                      # If true, the map contains 'col
 
 #### Traversability filter ########
 use_chainer: false                              # Use chainer as a  of traversability filter or pytorch. If false, it uses pytorch. pytorch requires ~2GB more GPU memory compared to chainer but runs faster.
-weight_file: '$(rospack find elevation_mapping_cupy)/config/weights.backenddat'               # Weight file for traversability filter
+weight_file: '$(rospack find elevation_mapping_cupy)/config/weights.dat'               # Weight file for traversability filter
 
 #### Upper bound ########
 use_only_above_for_upper_bound: false
