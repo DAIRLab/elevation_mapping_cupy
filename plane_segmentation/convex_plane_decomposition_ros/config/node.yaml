@@ -2,7 +2,7 @@ elevation_topic: '/elevation_mapping/elevation_map_raw'
 height_layer: 'elevation'
 target_frame_id: 'map'
 submap:
-  width: 2.0  
-  length: 2.0
+  width: 4.0  
+  length: 4.0
 publish_to_controller: true
 frequency: 20.0

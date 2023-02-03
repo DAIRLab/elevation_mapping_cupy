@@ -18,6 +18,9 @@
 
 #include <elevation_map_msgs/Statistics.h>
 
+// Pass through filter
+#include <pcl/filters/passthrough.h>
+
 namespace elevation_mapping_cupy {
 
 ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
@@ -219,9 +222,22 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   auto start = ros::Time::now();
   pcl::PCLPointCloud2 pcl_pc;
   pcl_conversions::toPCL(cloud, pcl_pc);
-
+  pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::fromPCLPointCloud2(pcl_pc, *pointCloud);
+
+
+  pcl::fromPCLPointCloud2(pcl_pc,*pointCloud);
+  // Modifications done here
+  
+  pcl::PassThrough<pcl::PointXYZ> pass;
+  pass.setInputCloud (pointCloud);
+  pass.setFilterFieldName ("y");
+  pass.setFilterLimits (0.3, 5.0);
+  pass.filter (*cloud_filtered);
+  //pass.setFilterFieldName("y");
+  //pass.setFilterLimits()
+
   tf::StampedTransform transformTf;
   std::string sensorFrameId = cloud.header.frame_id;
   auto timeStamp = cloud.header.stamp;
@@ -243,7 +259,10 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
     orientationError = orientationError_;
   }
 
-  map_.input(pointCloud, transformationSensorToMap.rotation(), transformationSensorToMap.translation(), positionError, orientationError);
+  // pcl_conversions::fromPCL(cloud_filtered, output);
+  // pub = nh.advertise<sensor_msgs::PointCloud2> ("filtered_pointcloud", 1);
+
+  map_.input(cloud_filtered, transformationSensorToMap.rotation(), transformationSensorToMap.translation(), positionError, orientationError);
 
   if (enableDriftCorrectedTFPublishing_) {
     publishMapToOdom(map_.get_additive_mean_error());

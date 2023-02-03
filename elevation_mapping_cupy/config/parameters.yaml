@@ -1,6 +1,6 @@
 #### Basic parameters ########
 resolution: 0.04                                # resolution in m.
-map_length: 2.0                              # map's size in m.
+map_length: 4.0                              # map's size in m.
 sensor_noisefactor: 0.05                        # point's noise is sensor_noise_factor*z^2 (z is distance from sensor).
 mahalanobis_thresh: 2.0                         # points outside this distance is outlier.
 outlier_variance: 0.01                          # if point is outlier, add this value to the cell.
@@ -18,20 +18,20 @@ position_noise_thresh: 0.01                     # if the position change is bigg
 orientation_noise_thresh: 0.01                  # if the orientation change is bigger than this value, the drift compensation happens.
 position_lowpass_alpha: 0.2                     # lowpass filter alpha used for detecting movements.
 orientation_lowpass_alpha: 0.2                  # lowpass filter alpha used for detecting movements.
-min_valid_distance: 0.5                         # points with shorter distance will be filtered out.
-max_height_range: 1.0                           # points higher than this value from sensor will be filtered out to disable ceiling.
+min_valid_distance: 0.6                         # Calculated this value based on how far the robot can take a set up, value from camera # points with shorter distance will be filtered out.
+max_height_range: 1.2                           # Calculated this value based on how far a robot can step done, value from camera# points higher than this value from sensor will be filtered out to disable ceiling.
 ramped_height_range_a: 0.3                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
 ramped_height_range_b: 1.0                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
 ramped_height_range_c: 0.2                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
-update_variance_fps: 5.0                        # fps for updating variance.
-update_pose_fps: 10.0                           # fps for updating pose and shift the center of map.
+update_variance_fps: 10.0 #5.0                        # fps for updating variance.
+update_pose_fps: 15.0 #10.0                           # fps for updating pose and shift the center of map.
 time_interval: 0.1                              # Time layer is updated with this interval.
 map_acquire_fps: 15.0                           # Raw map is fetched from GPU memory in this fps.
 publish_statistics_fps: 1.0                     # Publish statistics topic in this fps.
 
 max_ray_length: 10.0                            # maximum length for ray tracing.
-cleanup_step: 0.1                               # subtitute this value from validity layer at visibiltiy cleanup.
-cleanup_cos_thresh: 0.1                         # subtitute this value from validity layer at visibiltiy cleanup.
+cleanup_step: 4.0                               # subtitute this value from validity layer at visibiltiy cleanup.
+cleanup_cos_thresh: 0.99 #  0.1                        # subtitute this value from validity layer at visibiltiy cleanup.
 
 safe_thresh: 0.7                                # if traversability is smaller, it is counted as unsafe cell.
 safe_min_thresh: 0.4                            # polygon is unsafe if there exists lower traversability than this.
