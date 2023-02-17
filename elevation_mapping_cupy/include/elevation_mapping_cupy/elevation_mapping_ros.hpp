@@ -77,6 +77,7 @@ class ElevationMappingNode {
   tf::TransformBroadcaster tfBroadcaster_;
   ros::Publisher alivePub_;
   ros::Publisher pointPub_;
+  ros::Publisher pointPubFilter_;
   ros::Publisher normalPub_;
   ros::Publisher statisticsPub_;
   ros::ServiceServer rawSubmapService_;
@@ -124,6 +125,16 @@ class ElevationMappingNode {
 
   double positionAlpha_;
   double orientationAlpha_;
+
+  double y_min_;
+  double foot_mask_x_extent_;
+  double foot_mask_y_extent_;
+  double depth_min_;
+  double depth_max_;
+
+
+
+
 
   double recordableFps_;
   std::atomic_bool enablePointCloudPublishing_;

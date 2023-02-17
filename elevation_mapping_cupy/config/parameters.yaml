@@ -6,7 +6,7 @@ mahalanobis_thresh: 2.0                         # points outside this distance i
 outlier_variance: 0.01                          # if point is outlier, add this value to the cell.
 drift_compensation_variance_inler: 0.05         # cells under this value is used for drift compensation.
 max_drift: 0.1                                  # drift compensation happens only the drift is smaller than this value (for safety)
-drift_compensation_alpha: 0.1                   # drift compensation alpha for smoother update of drift compensation
+drift_compensation_alpha: 0.01                   # drift compensation alpha for smoother update of drift compensation
 time_variance: 0.0001                           # add this value when update_variance is called.
 max_variance: 100.0                             # maximum variance for each cell.
 initial_variance: 1000.0                         # initial variance for each cell.
@@ -28,6 +28,13 @@ update_pose_fps: 15.0 #10.0                           # fps for updating pose an
 time_interval: 0.1                              # Time layer is updated with this interval.
 map_acquire_fps: 15.0                           # Raw map is fetched from GPU memory in this fps.
 publish_statistics_fps: 1.0                     # Publish statistics topic in this fps.
+
+# DAIR Custom filter params
+y_min: -0.45
+foot_mask_x_extent: 0.35
+foot_mask_y_extent: -0.1
+depth_min: 0.75
+depth_max: 2.0
 
 max_ray_length: 10.0                            # maximum length for ray tracing.
 cleanup_step: 4.0                               # subtitute this value from validity layer at visibiltiy cleanup.

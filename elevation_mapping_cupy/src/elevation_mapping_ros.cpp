@@ -20,6 +20,7 @@
 
 // Pass through filter
 #include <pcl/filters/passthrough.h>
+#include <pcl/filters/crop_box.h>
 
 namespace elevation_mapping_cupy {
 
@@ -59,6 +60,14 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
   nh.param<double>("initialize_tf_grid_size", initializeTfGridSize_, 0.5);
   nh.param<double>("map_acquire_fps", updateGridMapFps, 5.0);
   nh.param<double>("publish_statistics_fps", publishStatisticsFps, 1.0);
+  
+  // Custom filter params
+  nh.param<double>("y_min", y_min_, -0.45);
+  nh.param<double>("foot_mask_x_extent", foot_mask_x_extent_, 0.35);
+  nh.param<double>("foot_mask_y_extent", foot_mask_y_extent_, -0.1);
+  nh.param<double>("depth_min", depth_min_, 0.75);
+  nh.param<double>("depth_max", depth_max_, 2.0);
+  
   nh.param<bool>("enable_pointcloud_publishing", enablePointCloudPublishing, false);
   nh.param<bool>("enable_normal_arrow_publishing", enableNormalArrowPublishing_, false);
   nh.param<bool>("enable_drift_corrected_TF_publishing", enableDriftCorrectedTFPublishing_, false);
@@ -111,6 +120,7 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
   setupMapPublishers();
 
   pointPub_ = nh_.advertise<sensor_msgs::PointCloud2>("elevation_map_points", 1);
+  pointPubFilter_ = nh_.advertise<sensor_msgs::PointCloud2>("point_cloud_filtered", 1);
   alivePub_ = nh_.advertise<std_msgs::Empty>("alive", 1);
   normalPub_ = nh_.advertise<visualization_msgs::MarkerArray>("normal", 1);
   statisticsPub_ = nh_.advertise<elevation_map_msgs::Statistics>("statistics", 1);
@@ -224,19 +234,55 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   pcl_conversions::toPCL(cloud, pcl_pc);
   pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_depth_mask (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZ>);
 
 
   pcl::fromPCLPointCloud2(pcl_pc,*pointCloud);
-  // Modifications done here
   
+
+  /*
+  * Begin custom masking filters for cassie to remove the feet, pelvis, and
+  * other extraneous points
+  * 
+  * Parameters:
+  * 
+  * y_min_: minimum y value (in the camera frame) for which to consider points
+  *       meant to cleanup the bottom edge which has stray points from 
+  *       seeing the pelvis
+  * 
+  * foot_mask_x_extent_: distance from the centerline to mask out the foot
+  * foot_mask_y_extent_: maximum camera frame y value to include in the foot mask
+  * 
+  * depth_min_: minimum depth to include points from
+  * depth_max_: maximum deoth to consider points from
+  */
+
+   
   pcl::PassThrough<pcl::PointXYZ> pass;
   pass.setInputCloud (pointCloud);
   pass.setFilterFieldName ("y");
-  pass.setFilterLimits (0.3, 5.0);
+  pass.setFilterLimits (y_min_, 10.0);
   pass.filter (*cloud_filtered);
-  //pass.setFilterFieldName("y");
-  //pass.setFilterLimits()
+
+  pcl::CropBox<pcl::PointXYZ> boxFilter;
+  float x_min = -foot_mask_x_extent_, y_min = -1, z_min = -10;
+  float x_max = foot_mask_x_extent_, y_max = foot_mask_y_extent_, z_max = 10;
+  boxFilter.setMin(Eigen::Vector4f(x_min, y_min, z_min, 1.0));
+  boxFilter.setMax(Eigen::Vector4f(x_max, y_max, z_max, 1.0));  
+  boxFilter.setNegative(true);
+  boxFilter.setInputCloud(cloud_filtered);
+  boxFilter.filter(*cloud_filtered);
+
+  // Filter to keep the points within a zlimits
+  pcl::CropBox<pcl::PointXYZ> boxFilterDepthMask;
+  float x_min_depth = -10, y_min_depth = -10, z_min_depth = depth_min_;
+  float x_max_depth = 10,  y_max_depth = 10,  z_max_depth = depth_max_;
+  boxFilterDepthMask.setMin(Eigen::Vector4f(x_min_depth, y_min_depth, z_min_depth, 1.0));
+  boxFilterDepthMask.setMax(Eigen::Vector4f(x_max_depth, y_max_depth, z_max_depth, 1.0));  
+  // boxFilter.setNegative(true);
+  boxFilterDepthMask.setInputCloud(cloud_filtered);
+  boxFilterDepthMask.filter(*cloud_filtered_depth_mask);
 
   tf::StampedTransform transformTf;
   std::string sensorFrameId = cloud.header.frame_id;
@@ -259,10 +305,18 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
     orientationError = orientationError_;
   }
 
-  // pcl_conversions::fromPCL(cloud_filtered, output);
-  // pub = nh.advertise<sensor_msgs::PointCloud2> ("filtered_pointcloud", 1);
 
-  map_.input(cloud_filtered, transformationSensorToMap.rotation(), transformationSensorToMap.translation(), positionError, orientationError);
+  pcl::PCLPointCloud2 filtered_pc;
+  pcl::toPCLPointCloud2(*cloud_filtered_depth_mask, filtered_pc);
+  sensor_msgs::PointCloud2 filter_msg;
+  // filter_msg.header.frame_id = cloud.header.frame_id;
+  
+  // ROS_INFO("Frame id", filter_msg.header.frame_id);
+  
+  pcl_conversions::fromPCL(filtered_pc, filter_msg);
+  pointPubFilter_.publish(filter_msg);
+
+  map_.input(cloud_filtered_depth_mask, transformationSensorToMap.rotation(), transformationSensorToMap.translation(), positionError, orientationError);
 
   if (enableDriftCorrectedTFPublishing_) {
     publishMapToOdom(map_.get_additive_mean_error());
