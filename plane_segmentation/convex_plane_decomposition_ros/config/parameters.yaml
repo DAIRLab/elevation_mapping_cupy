@@ -1,7 +1,7 @@
 preprocessing:
   resolution: -1      # Resampling resolution, set negative to skip, requires inpainting to be used
-  kernelSize: 3       # Kernel size of the median filter, either 3 or 5
-  numberOfRepeats: 0  # Number of times to apply the same filter
+  kernelSize: 5       # Kernel size of the median filter, either 3 or 5
+  numberOfRepeats: 1  # Number of times to apply the same filter
 
 sliding_window_plane_extractor:
   kernel_size: 3                                        # Size of the sliding window patch used for normal vector calculation and planarity detection. Should be an odd number and at least 3.
@@ -17,13 +17,13 @@ sliding_window_plane_extractor:
 
 ransac_plane_refinement:
   probability: 0.01       # Probability to miss the largest candidate shape. A lower probability provides a higher reliability and determinism at the cost of longer running times
-  min_points: 10          # This minimum number of points per plane. Controls the termination of the algorithm.
+  min_points: 4          # This minimum number of points per plane. Controls the termination of the algorithm.
   epsilon: 0.05           # Maximum distance to plane
   cluster_epsilon: 0.06   # [m] Set maximum Euclidean distance between points to be clustered. Two points are connected if separated by a distance of at most 2*sqrt(2)*cluster_epsilon = 2.828 * cluster_epsilon. Set this higher than resolution
   normal_threshold: 35.0  # [deg] Set maximum normal deviation between cluster surface_normal and point normal.
 
 contour_extraction:
-  marginSize: 2    # Size of the kernel creating the boundary offset. In number of (sub) pixels.
+  marginSize: 1    # Size of the kernel creating the boundary offset. In number of (sub) pixels.
 
 postprocessing:
   extracted_planes_height_offset: 0.0   # Added offset in Z direction for the full map to compensate for the location of the foot frame w.r.t. the contact point
