@@ -232,13 +232,9 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   auto start = ros::Time::now();
   pcl::PCLPointCloud2 pcl_pc;
   pcl_conversions::toPCL(cloud, pcl_pc);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_depth_mask (new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr pointCloud(new pcl::PointCloud<pcl::PointXYZ>);
 
-
-  pcl::fromPCLPointCloud2(pcl_pc,*pointCloud);
+  pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
   
 
   /*
@@ -255,35 +251,41 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   * foot_mask_y_extent_: maximum camera frame y value to include in the foot mask
   * 
   * depth_min_: minimum depth to include points from
-  * depth_max_: maximum deoth to consider points from
+  * depth_max_: maximum depth to consider points from
   */
 
-   
-  pcl::PassThrough<pcl::PointXYZ> pass;
-  pass.setInputCloud (pointCloud);
-  pass.setFilterFieldName ("y");
-  pass.setFilterLimits (y_min_, 10.0);
-  pass.filter (*cloud_filtered);
 
+  // camera y passthrough for edge cleanup
+  pcl::PassThrough<pcl::PointXYZ> camera_y_passthrough;
+  camera_y_passthrough.setFilterFieldName ("y");
+  camera_y_passthrough.setFilterLimits (y_min_, 10.0);
+
+  // Crop box to crop out Cassie's feet
   pcl::CropBox<pcl::PointXYZ> boxFilter;
   float x_min = -foot_mask_x_extent_, y_min = -1, z_min = -10;
   float x_max = foot_mask_x_extent_, y_max = foot_mask_y_extent_, z_max = 10;
   boxFilter.setMin(Eigen::Vector4f(x_min, y_min, z_min, 1.0));
-  boxFilter.setMax(Eigen::Vector4f(x_max, y_max, z_max, 1.0));  
+  boxFilter.setMax(Eigen::Vector4f(x_max, y_max, z_max, 1.0));
   boxFilter.setNegative(true);
-  boxFilter.setInputCloud(cloud_filtered);
-  boxFilter.filter(*cloud_filtered);
 
-  // Filter to keep the points within a zlimits
+  // Crop box to set min and max depth
   pcl::CropBox<pcl::PointXYZ> boxFilterDepthMask;
   float x_min_depth = -10, y_min_depth = -10, z_min_depth = depth_min_;
   float x_max_depth = 10,  y_max_depth = 10,  z_max_depth = depth_max_;
   boxFilterDepthMask.setMin(Eigen::Vector4f(x_min_depth, y_min_depth, z_min_depth, 1.0));
-  boxFilterDepthMask.setMax(Eigen::Vector4f(x_max_depth, y_max_depth, z_max_depth, 1.0));  
-  // boxFilter.setNegative(true);
-  boxFilterDepthMask.setInputCloud(cloud_filtered);
-  boxFilterDepthMask.filter(*cloud_filtered_depth_mask);
+  boxFilterDepthMask.setMax(Eigen::Vector4f(x_max_depth, y_max_depth, z_max_depth, 1.0));
 
+  // Apply filters
+  camera_y_passthrough.setInputCloud (cloud_filtered);
+  camera_y_passthrough.filter (*cloud_filtered);
+  boxFilter.setInputCloud(cloud_filtered);
+  boxFilter.filter(*cloud_filtered);
+  boxFilterDepthMask.setInputCloud(cloud_filtered);
+  boxFilterDepthMask.filter(*cloud_filtered);
+
+  /*
+   * End DAIR custom filters
+   */
   tf::StampedTransform transformTf;
   std::string sensorFrameId = cloud.header.frame_id;
   auto timeStamp = cloud.header.stamp;
@@ -304,26 +306,29 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
     positionError = positionError_;
     orientationError = orientationError_;
   }
-
-
-  pcl::PCLPointCloud2 filtered_pc;
-  pcl::toPCLPointCloud2(*cloud_filtered_depth_mask, filtered_pc);
-  sensor_msgs::PointCloud2 filter_msg;
-  // filter_msg.header.frame_id = cloud.header.frame_id;
   
   // ROS_INFO("Frame id", filter_msg.header.frame_id);
-  
-  pcl_conversions::fromPCL(filtered_pc, filter_msg);
-  pointPubFilter_.publish(filter_msg);
+  map_.input(cloud_filtered, transformationSensorToMap.rotation(),
+             transformationSensorToMap.translation(), positionError,
+             orientationError);
 
-  map_.input(cloud_filtered_depth_mask, transformationSensorToMap.rotation(), transformationSensorToMap.translation(), positionError, orientationError);
+  if (enablePointCloudPublishing_) {
+    pcl::PCLPointCloud2 filtered_pc;
+    pcl::toPCLPointCloud2(*cloud_filtered, filtered_pc);
+    sensor_msgs::PointCloud2 filter_msg;
+    pcl_conversions::fromPCL(filtered_pc, filter_msg);
+    pointPubFilter_.publish(filter_msg);
+  }
 
   if (enableDriftCorrectedTFPublishing_) {
     publishMapToOdom(map_.get_additive_mean_error());
   }
 
-  ROS_DEBUG_THROTTLE(1.0, "ElevationMap processed a point cloud (%i points) in %f sec.", static_cast<int>(pointCloud->size()),
-                     (ros::Time::now() - start).toSec());
+  ROS_DEBUG_THROTTLE(
+      1.0,
+      "ElevationMap processed a point cloud (%i points) in %f sec.",
+      static_cast<int>(cloud_filtered->size()),
+      (ros::Time::now() - start).toSec());
   ROS_DEBUG_THROTTLE(1.0, "positionError: %f ", positionError);
   ROS_DEBUG_THROTTLE(1.0, "orientationError: %f ", orientationError);
   // This is used for publishing as statistics.
