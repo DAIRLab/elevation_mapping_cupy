@@ -7,7 +7,7 @@ import numpy as np
 import threading
 import subprocess
 
-from .traversability_filter import get_filter_chainer, get_filter_torch
+# from .traversability_filter import get_filter_chainer, get_filter_torch
 from .parameter import Parameter
 from .custom_kernels import add_points_kernel
 from .custom_kernels import error_counting_kernel
@@ -80,14 +80,14 @@ class ElevationMap(object):
 
         self.compile_kernels()
 
-        weight_file = subprocess.getoutput('echo "' + param.weight_file + '"')
-        param.load_weights(weight_file)
+        # weight_file = subprocess.getoutput('echo "' + param.weight_file + '"')
+        # param.load_weights(weight_file)
 
-        if param.use_chainer:
-            self.traversability_filter = get_filter_chainer(param.w1, param.w2, param.w3, param.w_out)
-        else:
-            self.traversability_filter = get_filter_torch(param.w1, param.w2, param.w3, param.w_out)
-        self.untraversable_polygon = xp.zeros((1, 2))
+        # if param.use_chainer:
+        #     self.traversability_filter = get_filter_chainer(param.w1, param.w2, param.w3, param.w_out)
+        # else:
+        #     self.traversability_filter = get_filter_torch(param.w1, param.w2, param.w3, param.w_out)
+        # self.untraversable_polygon = xp.zeros((1, 2))
 
         # Plugins
         self.plugin_manager = PluginManger(cell_n=self.cell_n)
@@ -167,8 +167,8 @@ class ElevationMap(object):
     def compile_kernels(self):
         # Compile custom cuda kernels.
         self.new_map = cp.zeros((7, self.cell_n, self.cell_n))
-        self.traversability_input = cp.zeros((self.cell_n, self.cell_n))
-        self.traversability_mask_dummy = cp.zeros((self.cell_n, self.cell_n))
+        # self.traversability_input = cp.zeros((self.cell_n, self.cell_n))
+        # self.traversability_mask_dummy = cp.zeros((self.cell_n, self.cell_n))
         self.min_filtered = cp.zeros((self.cell_n, self.cell_n))
         self.min_filtered_mask = cp.zeros((self.cell_n, self.cell_n))
         self.mask = cp.zeros((self.cell_n, self.cell_n))
@@ -265,23 +265,23 @@ class ElevationMap(object):
             if self.param.enable_overlap_clearance:
                 self.clear_overlap_map(t)
 
-            # dilation before traversability_filter
-            self.traversability_input *= 0.0
-            self.dilation_filter_kernel(
-                self.elevation_map[5],
-                self.elevation_map[2] + self.elevation_map[6],
-                self.traversability_input,
-                self.traversability_mask_dummy,
-                size=(self.cell_n * self.cell_n),
-            )
-            # calculate traversability
-            traversability = self.traversability_filter(self.traversability_input)
-            self.elevation_map[3][3:-3, 3:-3] = traversability.reshape(
-                (traversability.shape[2], traversability.shape[3])
-            )
+            # # dilation before traversability_filter
+            # self.traversability_input *= 0.0
+            # self.dilation_filter_kernel(
+            #     self.elevation_map[5],
+            #     self.elevation_map[2] + self.elevation_map[6],
+            #     self.traversability_input,
+            #     self.traversability_mask_dummy,
+            #     size=(self.cell_n * self.cell_n),
+            # )
+            # # calculate traversability
+            # traversability = self.traversability_filter(self.traversability_input)
+            # self.elevation_map[3][3:-3, 3:-3] = traversability.reshape(
+            #     (traversability.shape[2], traversability.shape[3])
+            # )
 
         # calculate normal vectors
-        self.update_normal(self.traversability_input)
+        # self.update_normal(self.traversability_input)
 
     def clear_overlap_map(self, t):
         # Clear overlapping area around center
@@ -338,13 +338,13 @@ class ElevationMap(object):
     def get_variance(self):
         return self.process_map_for_publish(self.elevation_map[1], fill_nan=False, add_z=False)
 
-    def get_traversability(self):
-        traversability = cp.where(
-            (self.elevation_map[2] + self.elevation_map[6]) > 0.5, self.elevation_map[3].copy(), cp.nan
-        )
-        self.traversability_buffer[3:-3, 3:-3] = traversability[3:-3, 3:-3]
-        traversability = self.traversability_buffer[1:-1, 1:-1]
-        return traversability
+    # def get_traversability(self):
+    #     traversability = cp.where(
+    #         (self.elevation_map[2] + self.elevation_map[6]) > 0.5, self.elevation_map[3].copy(), cp.nan
+    #     )
+    #     self.traversability_buffer[3:-3, 3:-3] = traversability[3:-3, 3:-3]
+    #     traversability = self.traversability_buffer[1:-1, 1:-1]
+    #     return traversability
 
     def get_time(self):
         return self.process_map_for_publish(self.elevation_map[4], fill_nan=False, add_z=False)

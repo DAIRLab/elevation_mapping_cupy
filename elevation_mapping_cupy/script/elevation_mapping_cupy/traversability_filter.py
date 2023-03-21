@@ -2,8 +2,10 @@
 # Copyright (c) 2022, Takahiro Miki. All rights reserved.
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
-import cupy as cp
-
+try:
+    import cupy as cp
+except:
+    import pdb; pdb.set_trace()
 
 def get_filter_torch(*args, **kwargs):
     import torch

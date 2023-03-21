@@ -18,9 +18,11 @@
 
 #include <elevation_map_msgs/Statistics.h>
 
-// Pass through filter
+// filters
 #include <pcl/filters/passthrough.h>
 #include <pcl/filters/crop_box.h>
+#include <pcl/filters/voxel_grid.h>
+
 
 namespace elevation_mapping_cupy {
 
@@ -275,6 +277,10 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   boxFilterDepthMask.setMin(Eigen::Vector4f(x_min_depth, y_min_depth, z_min_depth, 1.0));
   boxFilterDepthMask.setMax(Eigen::Vector4f(x_max_depth, y_max_depth, z_max_depth, 1.0));
 
+  // Voxel grid filter to limit the number of points passed to the GPU
+  pcl::VoxelGrid<pcl::PointXYZ>  voxelGrid;
+  voxelGrid.setLeafSize(0.025 , 0.025, 0.25);
+
   // Apply filters
   camera_y_passthrough.setInputCloud (cloud_filtered);
   camera_y_passthrough.filter (*cloud_filtered);
@@ -282,6 +288,9 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   boxFilter.filter(*cloud_filtered);
   boxFilterDepthMask.setInputCloud(cloud_filtered);
   boxFilterDepthMask.filter(*cloud_filtered);
+  voxelGrid.setInputCloud(cloud_filtered);
+  voxelGrid.filter(*cloud_filtered);
+
 
   /*
    * End DAIR custom filters
