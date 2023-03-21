@@ -6,14 +6,14 @@ mahalanobis_thresh: 2.0                         # points outside this distance i
 outlier_variance: 0.01                          # if point is outlier, add this value to the cell.
 drift_compensation_variance_inler: 0.05         # cells under this value is used for drift compensation.
 max_drift: 0.1                                  # drift compensation happens only the drift is smaller than this value (for safety)
-drift_compensation_alpha: 0.01                   # drift compensation alpha for smoother update of drift compensation
+drift_compensation_alpha: 0.9                   # drift compensation alpha for smoother update of drift compensation
 time_variance: 0.0001                           # add this value when update_variance is called.
 max_variance: 100.0                             # maximum variance for each cell.
 initial_variance: 1000.0                         # initial variance for each cell.
 traversability_inlier: 0.9                      # cells with higher traversability are used for drift compensation.
 dilation_size: 3                                # dilation filter size before traversability filter.
 wall_num_thresh: 20                             # if there are more points than this value, only higher points than the current height are used to make the wall more sharp.
-min_height_drift_cnt: 100                       # drift compensation only happens if the valid cells are more than this number.
+min_height_drift_cnt: 50                       # drift compensation only happens if the valid cells are more than this number.
 position_noise_thresh: 0.01                     # if the position change is bigger than this value, the drift compensation happens.
 orientation_noise_thresh: 0.01                  # if the orientation change is bigger than this value, the drift compensation happens.
 position_lowpass_alpha: 0.2                     # lowpass filter alpha used for detecting movements.
@@ -82,7 +82,7 @@ publishers:
   elevation_map_raw:
     layers: ['elevation']
     basic_layers: ['elevation']
-    fps: 20.0
+    fps: 10.0
   elevation_map_recordable:
     layers: ['elevation']
     basic_layers: ['elevation']
