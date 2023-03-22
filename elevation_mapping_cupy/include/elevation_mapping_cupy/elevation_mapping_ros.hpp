@@ -16,6 +16,7 @@
 #include <pybind11/embed.h>  // everything needed for embedding
 
 // ROS
+#include <std_msgs/String.h>
 #include <geometry_msgs/PolygonStamped.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -52,6 +53,7 @@ class ElevationMappingNode {
  private:
   void readParameters();
   void setupMapPublishers();
+  void stanceFootCallback(const std_msgs::String& msg);
   void pointcloudCallback(const sensor_msgs::PointCloud2& cloud);
   void publishAsPointCloud(const grid_map::GridMap& map) const;
   bool getSubmap(grid_map_msgs::GetGridMap::Request& request, grid_map_msgs::GetGridMap::Response& response);
@@ -74,6 +76,7 @@ class ElevationMappingNode {
   ros::NodeHandle nh_;
   std::vector<ros::Subscriber> pointcloudSubs_;
   std::vector<ros::Publisher> mapPubs_;
+  ros::Subscriber stanceFootSub_;
   tf::TransformBroadcaster tfBroadcaster_;
   ros::Publisher alivePub_;
   ros::Publisher pointPub_;
@@ -111,9 +114,13 @@ class ElevationMappingNode {
   std::vector<std::string> initialize_frame_id_;
   std::vector<double> initialize_tf_offset_;
   std::string initializeMethod_;
+  std::string stanceFrameTopic_;
 
   Eigen::Vector3d lowpassPosition_;
   Eigen::Vector4d lowpassOrientation_;
+
+  std::mutex stanceMutex_;
+  std::string stanceFrameid_ = "";
 
   std::mutex mapMutex_;  // protects gridMap_
   grid_map::GridMap gridMap_;

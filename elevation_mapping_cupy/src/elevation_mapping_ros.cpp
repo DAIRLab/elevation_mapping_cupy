@@ -54,6 +54,7 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
   nh.param<std::string>("base_frame", baseFrameId_, "base");
   nh.param<std::string>("corrected_map_frame", correctedMapFrameId_, "corrected_map");
   nh.param<std::string>("initialize_method", initializeMethod_, "cubic");
+  nh.param<std::string>("stance_frame_topic", stanceFrameTopic_, "/alip_mpc/stance_foot");
   nh.param<double>("position_lowpass_alpha", positionAlpha_, 0.2);
   nh.param<double>("orientation_lowpass_alpha", orientationAlpha_, 0.2);
   nh.param<double>("recordable_fps", recordableFps, 3.0);
@@ -82,6 +83,7 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
     ros::Subscriber sub = nh_.subscribe(pointcloud_topic, 1, &ElevationMappingNode::pointcloudCallback, this);
     pointcloudSubs_.push_back(sub);
   }
+  stanceFootSub_ = nh_.subscribe(stanceFrameTopic_, 1, &ElevationMappingNode::stanceFootCallback, this);
 
   // register map publishers
   for (auto itr = publishers.begin(); itr != publishers.end(); ++itr) {
@@ -231,6 +233,11 @@ void ElevationMappingNode::publishMapOfIndex(int index) {
   mapPubs_[index].publish(msg);
 }
 
+void ElevationMappingNode::stanceFootCallback(const std_msgs::String& msg) {
+  std::lock_guard<std::mutex> lock(stanceMutex_);
+  stanceFrameid_ = msg.data;
+}
+
 void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cloud) {
   auto start = ros::Time::now();
   pcl::PCLPointCloud2 pcl_pc;
@@ -241,7 +248,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
   auto end_conv = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = end_conv - start_conv;
-  std::cout << "conversion takes " << elapsed.count() << " s\n";
+  // std::cout << "conversion takes " << elapsed.count() << " s\n";
 
 
   /*
@@ -301,11 +308,11 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   boxFilterDepthMask.filter(*cloud_filtered);
   auto end_depth_box = std::chrono::high_resolution_clock::now();
 
-  std::cout << "\n\nSetup took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_setup - start_profile).count() << " ms\n"
-            << "passthrough took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_passthrough - end_voxel).count() << " ms\n"
-            << "y box took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_box - end_passthrough).count() << " ms\n"
-            << "depth box took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_depth_box - end_box).count() << " ms\n"
-            << "voxel grid took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_voxel - end_setup).count() << " ms\n";
+  // std::cout << "\n\nSetup took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_setup - start_profile).count() << " ms\n"
+  //           << "passthrough took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_passthrough - end_voxel).count() << " ms\n"
+  //           << "y box took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_box - end_passthrough).count() << " ms\n"
+  //           << "depth box took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_depth_box - end_box).count() << " ms\n"
+  //           << "voxel grid took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_voxel - end_setup).count() << " ms\n";
 
   /*
    * End DAIR custom filters
@@ -578,7 +585,39 @@ void ElevationMappingNode::updateGridMap(const ros::TimerEvent&) {
   std::vector<std::string> layers(map_layers_all_.begin(), map_layers_all_.end());
   std::lock_guard<std::mutex> lock(mapMutex_);
   map_.get_grid_map(gridMap_, layers);
-  gridMap_.setTimestamp(ros::Time::now().toNSec());
+  const auto timeStamp = ros::Time::now();
+
+  /*
+   * DAIR modification: Correct map to current stance foot location
+   */
+   std::string stanceFrame = "";
+   {
+    std::lock_guard<std::mutex> lock(stanceMutex_);
+    stanceFrame = stanceFrameid_;
+   }
+   if (!stanceFrame.empty()) {
+    tf::StampedTransform tf_X_WF;
+    Eigen::Affine3d X_WF;
+    try {
+      transformListener_.waitForTransform(mapFrameId_, stanceFrame, timeStamp, ros::Duration(0.1));
+      transformListener_.lookupTransform(mapFrameId_, stanceFrame, timeStamp, tf_X_WF);
+      poseTFToEigen(tf_X_WF, X_WF);
+    } catch (tf::TransformException& ex) {
+      return;
+    }
+    Eigen::Vector3d foot_midpoint(0.02115, 0.056, 0);
+    Eigen::Vector3d stance_pos = X_WF.translation() + X_WF.rotation() * foot_midpoint;
+    double map_z = gridMap_.atPosition("elevation", stance_pos.head<2>(), grid_map::InterpolationMethods::INTER_LINEAR);
+    if (!std::isnan(map_z)) {
+      gridMap_.get("elevation") = gridMap_.get("elevation").array() + (stance_pos(2) - map_z); 
+    }
+  }
+  
+  /*
+   *  End dair custom mods
+   */
+
+  gridMap_.setTimestamp(timeStamp.toNSec());
   alivePub_.publish(std_msgs::Empty());
 
   // Mostly debug purpose
