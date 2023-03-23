@@ -23,10 +23,10 @@ max_height_range: 1.2                           # Calculated this value based on
 ramped_height_range_a: 0.3                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
 ramped_height_range_b: 1.0                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
 ramped_height_range_c: 0.2                      # if z > max(d - ramped_height_range_b, 0) * ramped_height_range_a + ramped_height_range_c, reject.
-update_variance_fps: 25.0 #5.0                        # fps for updating variance.
-update_pose_fps: 25.0 #10.0                           # fps for updating pose and shift the center of map.
+update_variance_fps: 50.0 #5.0                        # fps for updating variance.
+update_pose_fps: 50.0 #10.0                           # fps for updating pose and shift the center of map.
 time_interval: 0.01                             # Time layer is updated with this interval.
-map_acquire_fps: 25.0                           # Raw map is fetched from GPU memory in this fps.
+map_acquire_fps: 50.0                           # Raw map is fetched from GPU memory in this fps.
 publish_statistics_fps: 1.0                     # Publish statistics topic in this fps.
 
 # DAIR Custom filter params
@@ -82,15 +82,15 @@ publishers:
   elevation_map_raw:
     layers: ['elevation']
     basic_layers: ['elevation']
-    fps: 10.0
+    fps: 50.0
   elevation_map_recordable:
     layers: ['elevation']
     basic_layers: ['elevation']
-    fps: 2.0
+    fps: 1.0
   elevation_map_filter:
     layers: ['min_filter', 'smooth', 'inpaint', 'upper_bound']
     basic_layers: ['min_filter']
-    fps: 3.0
+    fps: 1.0
 
 #### Initializer ########
 initialize_method: 'linear'                                         # Choose one from 'nearest', 'linear', 'cubic'

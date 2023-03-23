@@ -244,10 +244,10 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   pcl_conversions::toPCL(cloud, pcl_pc);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
 
-  auto start_conv = std::chrono::high_resolution_clock::now();
+  // auto start_conv = std::chrono::high_resolution_clock::now();
   pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
-  auto end_conv = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed = end_conv - start_conv;
+  // auto end_conv = std::chrono::high_resolution_clock::now();
+  // std::chrono::duration<double> elapsed = end_conv - start_conv;
   // std::cout << "conversion takes " << elapsed.count() << " s\n";
 
 
@@ -268,7 +268,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   * depth_max_: maximum depth to consider points from
   */
 
-  auto start_profile = std::chrono::high_resolution_clock::now();
+  // auto start_profile = std::chrono::high_resolution_clock::now();
   // camera y passthrough for edge cleanup
   pcl::PassThrough<pcl::PointXYZ> camera_y_passthrough;
   camera_y_passthrough.setFilterFieldName ("y");
@@ -292,21 +292,21 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   // Voxel grid filter to limit the number of points passed to the GPU
   pcl::VoxelGrid<pcl::PointXYZ>  voxelGrid;
   voxelGrid.setLeafSize(0.01, 0.01, 0.01);
-  auto end_setup = std::chrono::high_resolution_clock::now();
+  // auto end_setup = std::chrono::high_resolution_clock::now();
 
   // Apply filters
   voxelGrid.setInputCloud(cloud_filtered);
   voxelGrid.filter(*cloud_filtered);
-  auto end_voxel = std::chrono::high_resolution_clock::now();
+  // auto end_voxel = std::chrono::high_resolution_clock::now();
   camera_y_passthrough.setInputCloud (cloud_filtered);
   camera_y_passthrough.filter (*cloud_filtered);
-  auto end_passthrough = std::chrono::high_resolution_clock::now();
+  // auto end_passthrough = std::chrono::high_resolution_clock::now();
   boxFilter.setInputCloud(cloud_filtered);
   boxFilter.filter(*cloud_filtered);
-  auto end_box = std::chrono::high_resolution_clock::now();
+  // auto end_box = std::chrono::high_resolution_clock::now();
   boxFilterDepthMask.setInputCloud(cloud_filtered);
   boxFilterDepthMask.filter(*cloud_filtered);
-  auto end_depth_box = std::chrono::high_resolution_clock::now();
+  // auto end_depth_box = std::chrono::high_resolution_clock::now();
 
   // std::cout << "\n\nSetup took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_setup - start_profile).count() << " ms\n"
   //           << "passthrough took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_passthrough - end_voxel).count() << " ms\n"
