@@ -291,15 +291,16 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
 
   // Voxel grid filter to limit the number of points passed to the GPU
   pcl::VoxelGrid<pcl::PointXYZ>  voxelGrid;
-  voxelGrid.setLeafSize(0.01, 0.01, 0.01);
+  voxelGrid.setLeafSize(0.02, 0.02, 0.02);
   // auto end_setup = std::chrono::high_resolution_clock::now();
 
   // Apply filters
+  camera_y_passthrough.setInputCloud (cloud_filtered);
+  camera_y_passthrough.filter (*cloud_filtered);
   voxelGrid.setInputCloud(cloud_filtered);
   voxelGrid.filter(*cloud_filtered);
   // auto end_voxel = std::chrono::high_resolution_clock::now();
-  camera_y_passthrough.setInputCloud (cloud_filtered);
-  camera_y_passthrough.filter (*cloud_filtered);
+ 
   // auto end_passthrough = std::chrono::high_resolution_clock::now();
   boxFilter.setInputCloud(cloud_filtered);
   boxFilter.filter(*cloud_filtered);

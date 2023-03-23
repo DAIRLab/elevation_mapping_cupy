@@ -30,7 +30,7 @@ map_acquire_fps: 50.0                           # Raw map is fetched from GPU me
 publish_statistics_fps: 1.0                     # Publish statistics topic in this fps.
 
 # DAIR Custom filter params
-y_min: -0.45
+y_min: -0.4
 foot_mask_x_extent: 0.35
 foot_mask_y_extent: -0.25
 depth_min: 0.75
