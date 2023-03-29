@@ -30,9 +30,9 @@ map_acquire_fps: 50.0                           # Raw map is fetched from GPU me
 publish_statistics_fps: 1.0                     # Publish statistics topic in this fps.
 
 # DAIR Custom filter params
-y_min: -0.4
+y_min: -0.27
 foot_mask_x_extent: 0.35
-foot_mask_y_extent: -0.25
+foot_mask_y_extent: -0.22
 depth_min: 0.75
 depth_max: 2.0
 
@@ -95,7 +95,7 @@ publishers:
 #### Initializer ########
 initialize_method: 'linear'                                         # Choose one from 'nearest', 'linear', 'cubic'
 initialize_frame_id: ['toe_right', 'toe_left']   # One tf (like ['footprint'] ) initializes a square around it.
-initialize_tf_offset: [-0.05, -0.05]                          # z direction. Should be same number as initialize_frame_id.
+initialize_tf_offset: [-0.08, -0.08]                          # z direction. Should be same number as initialize_frame_id.
 dilation_size_initialize: 5                                         # dilation size after the init.
 initialize_tf_grid_size: 0.4                                        # This is not used if number of tf is more than 3.
 use_initializer_at_start: true                                      # Use initializer when the node starts.
