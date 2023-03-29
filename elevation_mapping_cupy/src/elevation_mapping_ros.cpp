@@ -20,12 +20,13 @@
 
 // filters
 #include <pcl/filters/passthrough.h>
-#include <pcl/filters/crop_box.h>
 #include <pcl/filters/voxel_grid.h>
 
 #include <chrono>
 
 namespace elevation_mapping_cupy {
+
+using Eigen::Vector3d;
 
 ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
     : lowpassPosition_(0, 0, 0),
@@ -238,11 +239,38 @@ void ElevationMappingNode::stanceFootCallback(const std_msgs::String& msg) {
   stanceFrameid_ = msg.data;
 }
 
+
+void ElevationMappingNode::setDynamicFootCropBoxParams(
+    pcl::CropBox<pcl::PointXYZ>* crop_box, const Eigen::Affine3d& X_FC) {
+
+  Vector3d toe_front_c = X_FC.translation() + X_FC.rotation() * toe_front_;
+  Vector3d toe_rear_c = X_FC.translation() + X_FC.rotation() * toe_rear_;
+
+  Vector3d x = (toe_front_c - toe_rear_c).normalized();
+  Vector3d y = X_FC.rotation().col(2);
+  Vector3d z = x.cross(y).normalized();
+  Eigen::Matrix3d R = Eigen::Matrix3d::Zero();
+  R.col(0) = x;
+  R.col(1) = y;
+  R.col(2) = z;
+
+  Eigen::Affine3d X_BC;
+  X_BC.linear() = R;
+  X_BC.translation() = toe_front_c + R * crop_box_origin_;
+
+  crop_box->setMin(Eigen::Vector4f(-0.5, -0.075, -0.4, 1.0));
+  crop_box->setMax(Eigen::Vector4f(0.25, 0.075, 0.4, 1.0));
+  crop_box->setTransform(X_BC.inverse().cast<float>());
+}
+
 void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cloud) {
   auto start = ros::Time::now();
   pcl::PCLPointCloud2 pcl_pc;
   pcl_conversions::toPCL(cloud, pcl_pc);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+  auto timeStamp = cloud.header.stamp;
+  std::string sensorFrameId = cloud.header.frame_id;
+
 
   // auto start_conv = std::chrono::high_resolution_clock::now();
   pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
@@ -275,12 +303,30 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   camera_y_passthrough.setFilterLimits (y_min_, 10.0);
 
   // Crop box to crop out Cassie's feet
-  pcl::CropBox<pcl::PointXYZ> boxFilter;
-  float x_min = -foot_mask_x_extent_, y_min = -1, z_min = -10;
-  float x_max = foot_mask_x_extent_, y_max = foot_mask_y_extent_, z_max = 10;
-  boxFilter.setMin(Eigen::Vector4f(x_min, y_min, z_min, 1.0));
-  boxFilter.setMax(Eigen::Vector4f(x_max, y_max, z_max, 1.0));
-  boxFilter.setNegative(true);
+  pcl::CropBox<pcl::PointXYZ> boxFilterLeft;
+  pcl::CropBox<pcl::PointXYZ> boxFilterRight;
+
+  tf::StampedTransform tf_X_LC, tf_X_RC;
+  Eigen::Affine3d X_LC, X_RC;
+
+  try {
+    transformListener_.waitForTransform(
+        left_toe_frame_, sensorFrameId, timeStamp, ros::Duration(0.1));
+    transformListener_.lookupTransform(
+        sensorFrameId, left_toe_frame_, timeStamp, tf_X_LC);
+    transformListener_.lookupTransform(
+        sensorFrameId, right_toe_frame_, timeStamp, tf_X_RC);
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR("%s", ex.what());
+    return;
+  }
+
+  poseTFToEigen(tf_X_LC, X_LC);
+  poseTFToEigen(tf_X_RC, X_RC);
+  setDynamicFootCropBoxParams(&boxFilterLeft, X_LC);
+  setDynamicFootCropBoxParams(&boxFilterRight, X_RC);
+  boxFilterLeft.setNegative(true);
+  boxFilterRight.setNegative(true);
 
   // Crop box to set min and max depth
   pcl::CropBox<pcl::PointXYZ> boxFilterDepthMask;
@@ -302,8 +348,11 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   // auto end_voxel = std::chrono::high_resolution_clock::now();
  
   // auto end_passthrough = std::chrono::high_resolution_clock::now();
-  boxFilter.setInputCloud(cloud_filtered);
-  boxFilter.filter(*cloud_filtered);
+  boxFilterLeft.setInputCloud(cloud_filtered);
+  boxFilterLeft.filter(*cloud_filtered);
+  boxFilterRight.setInputCloud(cloud_filtered);
+  boxFilterRight.filter(*cloud_filtered);
+
   // auto end_box = std::chrono::high_resolution_clock::now();
   boxFilterDepthMask.setInputCloud(cloud_filtered);
   boxFilterDepthMask.filter(*cloud_filtered);
@@ -318,9 +367,46 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   /*
    * End DAIR custom filters
    */
+
+  /*
+   * DAIR modification: Correct map to current stance foot location
+   */
+  std::string stanceFrame = "";
+  {
+    std::lock_guard<std::mutex> lock(stanceMutex_);
+    stanceFrame = stanceFrameid_;
+  }
+  if (!stanceFrame.empty()) {
+    tf::StampedTransform tf_X_WF;
+    Eigen::Affine3d X_WF;
+    try {
+      transformListener_.waitForTransform(mapFrameId_, stanceFrame, timeStamp, ros::Duration(0.1));
+      transformListener_.lookupTransform(mapFrameId_, stanceFrame, timeStamp, tf_X_WF);
+      poseTFToEigen(tf_X_WF, X_WF);
+    } catch (tf::TransformException& ex) {
+      ROS_ERROR("%s", ex.what());
+      return;
+    }
+    Eigen::Vector3d foot_midpoint(0.02115, 0.056, 0);
+    Eigen::Vector3d stance_pos = X_WF.translation() + X_WF.rotation() * foot_midpoint;
+    double map_z = 0;
+    {
+      // Note we're using the gridMap_, not map_, hopefully should be
+      // recent enough
+      std::lock_guard<std::mutex> lock(mapMutex_);
+      map_z = gridMap_.atPosition("elevation", stance_pos.head<2>(),
+                                  grid_map::InterpolationMethods::INTER_LINEAR);
+    }
+    if (!std::isnan(map_z)) {
+      map_.shift_map_z(stance_pos(2) - map_z);
+    }
+  }
+
+  /*
+   *  End dair custom mods
+   */
+
   tf::StampedTransform transformTf;
-  std::string sensorFrameId = cloud.header.frame_id;
-  auto timeStamp = cloud.header.stamp;
   Eigen::Affine3d transformationSensorToMap;
   try {
     transformListener_.waitForTransform(mapFrameId_, sensorFrameId, timeStamp, ros::Duration(1.0));
@@ -587,36 +673,6 @@ void ElevationMappingNode::updateGridMap(const ros::TimerEvent&) {
   std::lock_guard<std::mutex> lock(mapMutex_);
   map_.get_grid_map(gridMap_, layers);
   const auto timeStamp = ros::Time::now();
-
-  /*
-   * DAIR modification: Correct map to current stance foot location
-   */
-   std::string stanceFrame = "";
-   {
-    std::lock_guard<std::mutex> lock(stanceMutex_);
-    stanceFrame = stanceFrameid_;
-   }
-   if (!stanceFrame.empty()) {
-    tf::StampedTransform tf_X_WF;
-    Eigen::Affine3d X_WF;
-    try {
-      transformListener_.waitForTransform(mapFrameId_, stanceFrame, timeStamp, ros::Duration(0.1));
-      transformListener_.lookupTransform(mapFrameId_, stanceFrame, timeStamp, tf_X_WF);
-      poseTFToEigen(tf_X_WF, X_WF);
-    } catch (tf::TransformException& ex) {
-      return;
-    }
-    Eigen::Vector3d foot_midpoint(0.02115, 0.056, 0);
-    Eigen::Vector3d stance_pos = X_WF.translation() + X_WF.rotation() * foot_midpoint;
-    double map_z = gridMap_.atPosition("elevation", stance_pos.head<2>(), grid_map::InterpolationMethods::INTER_LINEAR);
-    if (!std::isnan(map_z)) {
-      gridMap_.get("elevation") = gridMap_.get("elevation").array() + (stance_pos(2) - map_z); 
-    }
-  }
-  
-  /*
-   *  End dair custom mods
-   */
 
   gridMap_.setTimestamp(timeStamp.toNSec());
   alivePub_.publish(std_msgs::Empty());

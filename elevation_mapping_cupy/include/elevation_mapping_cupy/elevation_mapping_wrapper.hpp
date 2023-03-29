@@ -47,7 +47,7 @@ class ElevationMappingWrapper {
   void input(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloud, const RowMatrixXd& R, const Eigen::VectorXd& t,
              const double positionNoise, const double orientationNoise);
 
-  void shift_z(const double delta_z) { map_.attr("shift_z")(delta_z); }
+  void shift_map_z(const double delta_z);
   void move_to(const Eigen::VectorXd& p);
   void clear();
   void update_variance();

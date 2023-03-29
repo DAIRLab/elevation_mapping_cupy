@@ -92,6 +92,12 @@ void ElevationMappingWrapper::input(const pcl::PointCloud<pcl::PointXYZ>::Ptr& p
                      positionNoise, orientationNoise);
 }
 
+
+void ElevationMappingWrapper::shift_map_z(const double delta_z) {
+  py::gil_scoped_acquire acquire;
+  map_.attr("shift_map_z")(delta_z);
+}
+
 void ElevationMappingWrapper::move_to(const Eigen::VectorXd& p) {
   py::gil_scoped_acquire acquire;
   map_.attr("move_to")(Eigen::Ref<const Eigen::VectorXd>(p));

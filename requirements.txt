@@ -1,7 +1,6 @@
 ###### Requirements without Version Specifiers ######`
 numpy
 scipy
-dataclasses
 ruamel.yaml
 opencv-python
 

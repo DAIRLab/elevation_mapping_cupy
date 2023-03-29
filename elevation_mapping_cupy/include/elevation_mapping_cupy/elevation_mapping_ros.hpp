@@ -36,6 +36,7 @@
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/filters/crop_box.h>
 
 #include <elevation_map_msgs/CheckSafety.h>
 #include <elevation_map_msgs/Initialize.h>
@@ -71,6 +72,7 @@ class ElevationMappingNode {
   void publishMapToOdom(double error);
   void publishStatistics(const ros::TimerEvent&);
   void publishMapOfIndex(int index);
+  void setDynamicFootCropBoxParams(pcl::CropBox<pcl::PointXYZ>* crop_box, const Eigen::Affine3d& X_FC);
 
   visualization_msgs::Marker vectorToArrowMarker(const Eigen::Vector3d& start, const Eigen::Vector3d& end, const int id) const;
   ros::NodeHandle nh_;
@@ -133,12 +135,20 @@ class ElevationMappingNode {
   double positionAlpha_;
   double orientationAlpha_;
 
+  /* DAIR filter params */
   double y_min_;
   double foot_mask_x_extent_;
   double foot_mask_y_extent_;
   double depth_min_;
   double depth_max_;
-
+  const std::string left_toe_frame_ = "toe_left";
+  const std::string right_toe_frame_ = "toe_right";
+  const Eigen::Vector3d left_hip_yaw_origin_in_pelvis_{0.021, 0.135, 0.0};
+  const Eigen::Vector3d right_hip_yaw_origin_in_pelvis_{0.021, -0.135, 0.0};
+  const Eigen::Vector3d toe_front_{-0.0457, 0.112, 0.0};
+  const Eigen::Vector3d toe_rear_{0.088, 0.0, 0.0};
+  const Eigen::Vector3d crop_box_origin_{-0.2, 0.0, 0.2};
+  const Eigen::Vector3d toe_mid_ = toe_front_ + toe_rear_;
 
 
 
