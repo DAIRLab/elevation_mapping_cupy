@@ -56,7 +56,7 @@ enable_edge_sharpen: true
 enable_visibility_cleanup: true
 enable_drift_compensation: true
 enable_overlap_clearance: true
-enable_pointcloud_publishing: true
+enable_pointcloud_publishing: false
 enable_drift_corrected_TF_publishing: false
 enable_normal_color: false                      # If true, the map contains 'color' layer corresponding to normal. Add 'color' layer to the publishers setting if you want to visualize.
 
