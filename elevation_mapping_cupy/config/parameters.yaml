@@ -48,7 +48,7 @@ overlap_clear_range_xy: 4.0                     # xy range [m] for clearing over
 overlap_clear_range_z: 2.0                      # z range [m] for clearing overlapped area. cells outside this range will be cleared. (used for multi floor setting)
 
 map_frame: 'map'                               # The map frame where the odometry source uses.
-base_frame: 'pelvis'                              # The robot's base frame. This frame will be a center of the map.
+base_frame: 'map_center'                              # The robot's base frame. This frame will be a center of the map.
 corrected_map_frame: 'corrected_map'
 
 #### Feature toggles ########
