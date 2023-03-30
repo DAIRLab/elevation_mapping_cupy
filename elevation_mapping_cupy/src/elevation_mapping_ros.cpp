@@ -258,75 +258,30 @@ void ElevationMappingNode::setDynamicFootCropBoxParams(
   X_BC.linear() = R;
   X_BC.translation() = toe_front_c + R * crop_box_origin_;
 
-  crop_box->setMin(Eigen::Vector4f(-0.5, -0.075, -0.4, 1.0));
-  crop_box->setMax(Eigen::Vector4f(0.25, 0.075, 0.4, 1.0));
+  crop_box->setMin(Eigen::Vector4f(-0.7, -0.075, -0.4, 1.0));
+  crop_box->setMax(Eigen::Vector4f(0.25, 0.075, 0.5, 1.0));
   crop_box->setTransform(X_BC.inverse().cast<float>());
 }
 
-void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cloud) {
-  auto start = ros::Time::now();
-  pcl::PCLPointCloud2 pcl_pc;
-  pcl_conversions::toPCL(cloud, pcl_pc);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
-  auto timeStamp = cloud.header.stamp;
-  std::string sensorFrameId = cloud.header.frame_id;
-
-
-  // auto start_conv = std::chrono::high_resolution_clock::now();
-  pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
-  // auto end_conv = std::chrono::high_resolution_clock::now();
-  // std::chrono::duration<double> elapsed = end_conv - start_conv;
-  // std::cout << "conversion takes " << elapsed.count() << " s\n";
-
-
-  /*
-  * Begin custom masking filters for cassie to remove the feet, pelvis, and
+/*
+  * Custom masking filters for cassie to remove the pelvis and
   * other extraneous points
-  * 
+  *
   * Parameters:
-  * 
+  *
   * y_min_: minimum y value (in the camera frame) for which to consider points
-  *       meant to cleanup the bottom edge which has stray points from 
+  *       meant to cleanup the bottom edge which has stray points from
   *       seeing the pelvis
-  * 
-  * foot_mask_x_extent_: distance from the centerline to mask out the foot
-  * foot_mask_y_extent_: maximum camera frame y value to include in the foot mask
-  * 
+  *
   * depth_min_: minimum depth to include points from
   * depth_max_: maximum depth to consider points from
   */
+void ElevationMappingNode::preprocessPointcloudCassie(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) {
 
-  // auto start_profile = std::chrono::high_resolution_clock::now();
   // camera y passthrough for edge cleanup
   pcl::PassThrough<pcl::PointXYZ> camera_y_passthrough;
   camera_y_passthrough.setFilterFieldName ("y");
   camera_y_passthrough.setFilterLimits (y_min_, 10.0);
-
-  // Crop box to crop out Cassie's feet
-  pcl::CropBox<pcl::PointXYZ> boxFilterLeft;
-  pcl::CropBox<pcl::PointXYZ> boxFilterRight;
-
-  tf::StampedTransform tf_X_LC, tf_X_RC;
-  Eigen::Affine3d X_LC, X_RC;
-
-  try {
-    transformListener_.waitForTransform(
-        left_toe_frame_, sensorFrameId, timeStamp, ros::Duration(0.1));
-    transformListener_.lookupTransform(
-        sensorFrameId, left_toe_frame_, timeStamp, tf_X_LC);
-    transformListener_.lookupTransform(
-        sensorFrameId, right_toe_frame_, timeStamp, tf_X_RC);
-  } catch (tf::TransformException& ex) {
-    ROS_ERROR("%s", ex.what());
-    return;
-  }
-
-  poseTFToEigen(tf_X_LC, X_LC);
-  poseTFToEigen(tf_X_RC, X_RC);
-  setDynamicFootCropBoxParams(&boxFilterLeft, X_LC);
-  setDynamicFootCropBoxParams(&boxFilterRight, X_RC);
-  boxFilterLeft.setNegative(true);
-  boxFilterRight.setNegative(true);
 
   // Crop box to set min and max depth
   pcl::CropBox<pcl::PointXYZ> boxFilterDepthMask;
@@ -338,39 +293,71 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   // Voxel grid filter to limit the number of points passed to the GPU
   pcl::VoxelGrid<pcl::PointXYZ>  voxelGrid;
   voxelGrid.setLeafSize(0.02, 0.02, 0.02);
-  // auto end_setup = std::chrono::high_resolution_clock::now();
 
   // Apply filters
-  camera_y_passthrough.setInputCloud (cloud_filtered);
-  camera_y_passthrough.filter (*cloud_filtered);
-  voxelGrid.setInputCloud(cloud_filtered);
-  voxelGrid.filter(*cloud_filtered);
-  // auto end_voxel = std::chrono::high_resolution_clock::now();
- 
-  // auto end_passthrough = std::chrono::high_resolution_clock::now();
-  boxFilterLeft.setInputCloud(cloud_filtered);
-  boxFilterLeft.filter(*cloud_filtered);
-  boxFilterRight.setInputCloud(cloud_filtered);
-  boxFilterRight.filter(*cloud_filtered);
+  camera_y_passthrough.setInputCloud (cloud);
+  camera_y_passthrough.filter (*cloud);
+  voxelGrid.setInputCloud(cloud);
+  voxelGrid.filter(*cloud);
+  boxFilterDepthMask.setInputCloud(cloud);
+  boxFilterDepthMask.filter(*cloud);
+}
 
-  // auto end_box = std::chrono::high_resolution_clock::now();
-  boxFilterDepthMask.setInputCloud(cloud_filtered);
-  boxFilterDepthMask.filter(*cloud_filtered);
-  // auto end_depth_box = std::chrono::high_resolution_clock::now();
+/*
+ * Custom cropbox to remove cassie's feet from a pointcloud
+ */
 
-  // std::cout << "\n\nSetup took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_setup - start_profile).count() << " ms\n"
-  //           << "passthrough took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_passthrough - end_voxel).count() << " ms\n"
-  //           << "y box took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_box - end_passthrough).count() << " ms\n"
-  //           << "depth box took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_depth_box - end_box).count() << " ms\n"
-  //           << "voxel grid took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_voxel - end_setup).count() << " ms\n";
+void ElevationMappingNode::applyFootCropBoxCassie(
+    pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
+    const tf::StampedTransform& tf_X_LC, const tf::StampedTransform& tf_X_RC) {
+  pcl::CropBox<pcl::PointXYZ> boxFilterLeft;
+  pcl::CropBox<pcl::PointXYZ> boxFilterRight;
+  Eigen::Affine3d X_LC, X_RC;
+
+  poseTFToEigen(tf_X_LC, X_LC);
+  poseTFToEigen(tf_X_RC, X_RC);
+  setDynamicFootCropBoxParams(&boxFilterLeft, X_LC);
+  setDynamicFootCropBoxParams(&boxFilterRight, X_RC);
+  boxFilterLeft.setNegative(true);
+  boxFilterRight.setNegative(true);
+
+  boxFilterLeft.setInputCloud(cloud);
+  boxFilterLeft.filter(*cloud);
+  boxFilterRight.setInputCloud(cloud);
+  boxFilterRight.filter(*cloud);
+}
+
+void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cloud) {
+  auto start = ros::Time::now();
+  pcl::PCLPointCloud2 pcl_pc;
+  pcl_conversions::toPCL(cloud, pcl_pc);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
+  auto timeStamp = cloud.header.stamp;
+  std::string sensorFrameId = cloud.header.frame_id;
+
+  pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
 
   /*
-   * End DAIR custom filters
+   *  Begin dair custom mods
    */
 
-  /*
-   * DAIR modification: Correct map to current stance foot location
-   */
+  // Pointcloud processing
+  preprocessPointcloudCassie(cloud_filtered);
+  tf::StampedTransform tf_X_LC, tf_X_RC;
+  try {
+    transformListener_.waitForTransform(
+        left_toe_frame_, sensorFrameId, timeStamp, ros::Duration(0.1));
+    transformListener_.lookupTransform(
+        sensorFrameId, left_toe_frame_, timeStamp, tf_X_LC);
+    transformListener_.lookupTransform(
+        sensorFrameId, right_toe_frame_, timeStamp, tf_X_RC);
+  } catch (tf::TransformException& ex) {
+    ROS_ERROR("%s", ex.what());
+    return;
+  }
+  applyFootCropBoxCassie(cloud_filtered, tf_X_LC, tf_X_RC);
+
+  // shift the map to align with the stance foot
   std::string stanceFrame = "";
   {
     std::lock_guard<std::mutex> lock(stanceMutex_);
@@ -387,12 +374,12 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
       ROS_ERROR("%s", ex.what());
       return;
     }
-    Eigen::Vector3d foot_midpoint(0.02115, 0.056, 0);
-    Eigen::Vector3d stance_pos = X_WF.translation() + X_WF.rotation() * foot_midpoint;
+    Eigen::Vector3d stance_pos = X_WF.translation() + X_WF.rotation() * toe_mid_;
     double map_z = 0;
     {
-      // Note we're using the gridMap_, not map_, hopefully should be
-      // recent enough
+      // Note we're using the gridMap_, not map_, so ideally we should
+      // be retrieving the map at least as fast as we receive new pointclouds
+      // (i.e. publish_map_fps = 50, pointcloud_fps = 30)
       std::lock_guard<std::mutex> lock(mapMutex_);
       map_z = gridMap_.atPosition("elevation", stance_pos.head<2>(),
                                   grid_map::InterpolationMethods::INTER_LINEAR);

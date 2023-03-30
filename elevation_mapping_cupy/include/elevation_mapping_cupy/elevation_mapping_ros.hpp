@@ -55,6 +55,10 @@ class ElevationMappingNode {
   void readParameters();
   void setupMapPublishers();
   void stanceFootCallback(const std_msgs::String& msg);
+  void applyFootCropBoxCassie(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
+                              const tf::StampedTransform& tf_X_LC,
+                              const tf::StampedTransform& tf_X_RC);
+  void preprocessPointcloudCassie(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
   void pointcloudCallback(const sensor_msgs::PointCloud2& cloud);
   void publishAsPointCloud(const grid_map::GridMap& map) const;
   bool getSubmap(grid_map_msgs::GetGridMap::Request& request, grid_map_msgs::GetGridMap::Response& response);
@@ -143,12 +147,10 @@ class ElevationMappingNode {
   double depth_max_;
   const std::string left_toe_frame_ = "toe_left";
   const std::string right_toe_frame_ = "toe_right";
-  const Eigen::Vector3d left_hip_yaw_origin_in_pelvis_{0.021, 0.135, 0.0};
-  const Eigen::Vector3d right_hip_yaw_origin_in_pelvis_{0.021, -0.135, 0.0};
   const Eigen::Vector3d toe_front_{-0.0457, 0.112, 0.0};
   const Eigen::Vector3d toe_rear_{0.088, 0.0, 0.0};
   const Eigen::Vector3d crop_box_origin_{-0.2, 0.0, 0.2};
-  const Eigen::Vector3d toe_mid_ = toe_front_ + toe_rear_;
+  const Eigen::Vector3d toe_mid_ = 0.5 * (toe_front_ + toe_rear_);
 
 
 
