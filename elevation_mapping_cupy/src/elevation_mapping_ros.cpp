@@ -389,6 +389,10 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
     }
   }
 
+  // set updatePose fps to 0 and only update in the pointcloud callback to
+  // avoid artifacts
+  updatePose(ros::TimerEvent{});
+
   /*
    *  End dair custom mods
    */
