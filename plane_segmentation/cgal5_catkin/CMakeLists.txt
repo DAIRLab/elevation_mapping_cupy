@@ -5,7 +5,7 @@ find_package(catkin REQUIRED)
 
 include(ExternalProject)
 
-set(VERSION 5.3)
+set(VERSION 5.5.2)
 
 file(MAKE_DIRECTORY ${CATKIN_DEVEL_PREFIX}/include)
 

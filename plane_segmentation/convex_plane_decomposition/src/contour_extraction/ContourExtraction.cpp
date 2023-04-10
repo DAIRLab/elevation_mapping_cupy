@@ -7,9 +7,73 @@
 
 #include <convex_plane_decomposition/GeometryUtils.h>
 #include <opencv2/imgproc.hpp>
+#include <algorithm>
 
 namespace convex_plane_decomposition {
 namespace contour_extraction {
+
+/*
+ * Custom DAIR modification: polygon simplification with Ramer-Douglas-Peucker algorithm
+ */
+namespace {
+using cv::Point;
+using cv::Point2d;
+using cv::norm;
+using std::vector;
+
+double clamp (double v, double l, double u) {
+  return std::max(std::min(v, u), l);
+}
+
+// Calculates the squared distance between a point and a line
+double pointLineDistance(const Point2d& p, const Point2d& v, const Point2d& w) {
+    const double l2 = norm(w - v);
+    if (l2 == 0.0) return norm(p - v);
+    const double t = clamp(static_cast<double>((p - v).dot(w - v)) / l2, 0.0, 1.0);
+    const Point2d projection = v + t * (w - v);
+    return norm(p - projection);
+}
+
+// Recursive function to simplify a curve
+void rdp(const vector<Point>& points, const double epsilon, const int start, const int end, vector<int>& result) {
+    const int n = points.size();
+    double dmax = 0.0;
+    int index = 0;
+    for (int i = start + 1; i < end; i++) {
+        const double d = pointLineDistance(static_cast<Point2d>(points.at(i)), 
+                                           static_cast<Point2d>(points.at(start)), 
+                                           static_cast<Point2d>(points.at(end)));
+        if (d > dmax) {
+            index = i;
+            dmax = d;
+        }
+    }
+    if (dmax > epsilon) {
+        rdp(points, epsilon, start, index, result);
+        rdp(points, epsilon, index, end, result);
+    } else {
+        result.push_back(start);
+        result.push_back(end);
+    }
+}
+
+// Ramer-Douglas-Peucker algorithm
+vector<Point> simplifyCurve(const vector<Point>& points, const double epsilon) {
+    const int n = static_cast<int>(points.size());
+    vector<int> result;
+    result.reserve(n);
+    result.push_back(0); // add the first point to the result
+    rdp(points, epsilon, 0, n - 1, result);
+    
+    vector<Point> keep;
+    keep.reserve(result.size());
+    for (const auto& i : result) {
+      keep.push_back(points.at(i));
+    }
+    return keep;
+}
+}
+
 
 ContourExtraction::ContourExtraction(const ContourExtractionParameters& parameters)
     : parameters_(parameters), binaryImage_(cv::Size(0, 0), CV_8UC1) {
@@ -38,12 +102,13 @@ std::vector<PlanarRegion> ContourExtraction::extractPlanarRegions(const Segmente
     cv::erode(binaryImage_, binaryImage_, marginKernel_, cv::Point(-1,-1), 1, cv::BORDER_REPLICATE);
     auto boundariesAndInsets = contour_extraction::extractBoundaryAndInset(binaryImage_, insetKernel_);
 
-    // If safety margin makes the region disappear -> try without
+    // If safety margin makes the region disappear, skip
     if (boundariesAndInsets.empty()) {
-      binaryImage_ = upSampledMap.labeledImage == label;
+      continue;
+      // binaryImage_ = upSampledMap.labeledImage == label;
       // still 1 pixel erosion to remove the growth after upsampling
-      cv::erode(binaryImage_, binaryImage_, insetKernel_, cv::Point(-1,-1), 1, cv::BORDER_REPLICATE);
-      boundariesAndInsets = contour_extraction::extractBoundaryAndInset(binaryImage_, insetKernel_);
+      // cv::erode(binaryImage_, binaryImage_, insetKernel_, cv::Point(-1,-1), 1, cv::BORDER_REPLICATE);
+      // boundariesAndInsets = contour_extraction::extractBoundaryAndInset(binaryImage_, insetKernel_);
     }
 
     const auto plane_parameters = getTransformLocalToGlobal(label_plane.second);
@@ -109,6 +174,13 @@ std::vector<CgalPolygonWithHoles2d> extractPolygonsFromBinaryImage(const cv::Mat
 
   cv::findContours(binary_image, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
 
+  // for (int i = 0; i < contours.size(); i++) {
+  //   auto contour_simple = simplifyCurve(contours.at(i), 20.0);
+  //   if (contour_simple.size() > 2) {
+  //     contours.at(i) = contour_simple;
+  //   }
+  // }
+
   std::vector<CgalPolygonWithHoles2d> plane_polygons;
   for (int i = 0; i < contours.size(); i++) {
     if (isOuterContour(hierarchy[i]) && contours[i].size() > 1) {
@@ -121,6 +193,7 @@ std::vector<CgalPolygonWithHoles2d> extractPolygonsFromBinaryImage(const cv::Mat
         polygon.add_hole(cgalPolygonFromOpenCv(contours[childIndex]));
         childIndex = hierarchy[childIndex][0];  // Next child
       }
+      polygon = CgalPolylineSimplification::simplify(polygon, CgalSquaredDistanceCost(), CgalStopBelowCountThreshold(12));
       plane_polygons.push_back(std::move(polygon));
     }
   }
