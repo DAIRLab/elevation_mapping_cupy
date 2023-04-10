@@ -193,7 +193,7 @@ std::vector<CgalPolygonWithHoles2d> extractPolygonsFromBinaryImage(const cv::Mat
         polygon.add_hole(cgalPolygonFromOpenCv(contours[childIndex]));
         childIndex = hierarchy[childIndex][0];  // Next child
       }
-      polygon = CgalPolylineSimplification::simplify(polygon, CgalSquaredDistanceCost(), CgalStopBelowCountThreshold(12));
+      polygon = CgalPolylineSimplification::simplify(polygon, CgalSquaredDistanceCost(), CgalStopBelowCountThreshold(14));
       plane_polygons.push_back(std::move(polygon));
     }
   }
