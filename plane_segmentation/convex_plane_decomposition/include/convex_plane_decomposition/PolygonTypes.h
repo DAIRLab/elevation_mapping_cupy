@@ -20,6 +20,7 @@ using CgalPolygonWithHoles2d = CGAL::Polygon_with_holes_2<K>;
 namespace CgalPolylineSimplification = CGAL::Polyline_simplification_2;
 using CgalSquaredDistanceCost = CgalPolylineSimplification::Squared_distance_cost;
 using CgalStopBelowCountThreshold = CgalPolylineSimplification::Stop_below_count_threshold;
+using CgalStopBelowCountRationThreshold = CgalPolylineSimplification::Stop_below_count_ratio_threshold;
 using CgalBbox2d = CGAL::Bbox_2;
 
 }  // namespace convex_plane_decomposition

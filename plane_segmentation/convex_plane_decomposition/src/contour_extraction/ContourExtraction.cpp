@@ -36,12 +36,11 @@ double pointLineDistance(const Point2d& p, const Point2d& v, const Point2d& w) {
 
 // Recursive function to simplify a curve
 void rdp(const vector<Point>& points, const double epsilon, const int start, const int end, vector<int>& result) {
-    const int n = points.size();
     double dmax = 0.0;
     int index = 0;
     for (int i = start + 1; i < end; i++) {
         const double d = pointLineDistance(static_cast<Point2d>(points.at(i)), 
-                                           static_cast<Point2d>(points.at(start)), 
+                                           static_cast<Point2d>(points.at(start)),
                                            static_cast<Point2d>(points.at(end)));
         if (d > dmax) {
             index = i;
@@ -52,7 +51,6 @@ void rdp(const vector<Point>& points, const double epsilon, const int start, con
         rdp(points, epsilon, start, index, result);
         rdp(points, epsilon, index, end, result);
     } else {
-        result.push_back(start);
         result.push_back(end);
     }
 }
@@ -174,12 +172,12 @@ std::vector<CgalPolygonWithHoles2d> extractPolygonsFromBinaryImage(const cv::Mat
 
   cv::findContours(binary_image, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
 
-  // for (int i = 0; i < contours.size(); i++) {
-  //   auto contour_simple = simplifyCurve(contours.at(i), 20.0);
-  //   if (contour_simple.size() > 2) {
-  //     contours.at(i) = contour_simple;
-  //   }
-  // }
+//   for (int i = 0; i < contours.size(); i++) {
+//     auto contour_simple = simplifyCurve(contours.at(i), 20.0);
+//     if (contour_simple.size() > 2) {
+//       contours.at(i) = contour_simple;
+//     }
+//   }
 
   std::vector<CgalPolygonWithHoles2d> plane_polygons;
   for (int i = 0; i < contours.size(); i++) {
@@ -193,7 +191,10 @@ std::vector<CgalPolygonWithHoles2d> extractPolygonsFromBinaryImage(const cv::Mat
         polygon.add_hole(cgalPolygonFromOpenCv(contours[childIndex]));
         childIndex = hierarchy[childIndex][0];  // Next child
       }
-      polygon = CgalPolylineSimplification::simplify(polygon, CgalSquaredDistanceCost(), CgalStopBelowCountThreshold(14));
+      polygon = CgalPolylineSimplification::simplify(
+        polygon, CgalSquaredDistanceCost(), 
+        CgalStopBelowCountRationThreshold(0.5)
+      );
       plane_polygons.push_back(std::move(polygon));
     }
   }
