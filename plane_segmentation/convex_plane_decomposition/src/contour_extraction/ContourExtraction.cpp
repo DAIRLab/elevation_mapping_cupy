@@ -12,67 +12,6 @@
 namespace convex_plane_decomposition {
 namespace contour_extraction {
 
-/*
- * Custom DAIR modification: polygon simplification with Ramer-Douglas-Peucker algorithm
- */
-namespace {
-using cv::Point;
-using cv::Point2d;
-using cv::norm;
-using std::vector;
-
-double clamp (double v, double l, double u) {
-  return std::max(std::min(v, u), l);
-}
-
-// Calculates the squared distance between a point and a line
-double pointLineDistance(const Point2d& p, const Point2d& v, const Point2d& w) {
-    const double l2 = norm(w - v);
-    if (l2 == 0.0) return norm(p - v);
-    const double t = clamp(static_cast<double>((p - v).dot(w - v)) / l2, 0.0, 1.0);
-    const Point2d projection = v + t * (w - v);
-    return norm(p - projection);
-}
-
-// Recursive function to simplify a curve
-void rdp(const vector<Point>& points, const double epsilon, const int start, const int end, vector<int>& result) {
-    double dmax = 0.0;
-    int index = 0;
-    for (int i = start + 1; i < end; i++) {
-        const double d = pointLineDistance(static_cast<Point2d>(points.at(i)), 
-                                           static_cast<Point2d>(points.at(start)),
-                                           static_cast<Point2d>(points.at(end)));
-        if (d > dmax) {
-            index = i;
-            dmax = d;
-        }
-    }
-    if (dmax > epsilon) {
-        rdp(points, epsilon, start, index, result);
-        rdp(points, epsilon, index, end, result);
-    } else {
-        result.push_back(end);
-    }
-}
-
-// Ramer-Douglas-Peucker algorithm
-vector<Point> simplifyCurve(const vector<Point>& points, const double epsilon) {
-    const int n = static_cast<int>(points.size());
-    vector<int> result;
-    result.reserve(n);
-    result.push_back(0); // add the first point to the result
-    rdp(points, epsilon, 0, n - 1, result);
-    
-    vector<Point> keep;
-    keep.reserve(result.size());
-    for (const auto& i : result) {
-      keep.push_back(points.at(i));
-    }
-    return keep;
-}
-}
-
-
 ContourExtraction::ContourExtraction(const ContourExtractionParameters& parameters)
     : parameters_(parameters), binaryImage_(cv::Size(0, 0), CV_8UC1) {
   {

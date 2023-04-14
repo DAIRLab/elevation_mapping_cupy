@@ -374,7 +374,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
       ROS_ERROR("%s", ex.what());
       return;
     }
-    Eigen::Vector3d stance_pos = X_WF.translation() + X_WF.rotation() * toe_mid_;
+    Eigen::Vector3d stance_pos = X_WF.translation() + X_WF.rotation() * toe_rear_;
     double map_z = 0;
     {
       // Note we're using the gridMap_, not map_, so ideally we should
