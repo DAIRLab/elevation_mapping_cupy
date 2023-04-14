@@ -23,7 +23,7 @@ ransac_plane_refinement:
   normal_threshold: 35.0  # [deg] Set maximum normal deviation between cluster surface_normal and point normal.
 
 contour_extraction:
-  marginSize: 3    # Size of the kernel creating the boundary offset. In number of (sub) pixels.
+  marginSize: 2    # Size of the kernel creating the boundary offset. In number of (sub) pixels.
 
 postprocessing:
   extracted_planes_height_offset: 0.0   # Added offset in Z direction for the full map to compensate for the location of the foot frame w.r.t. the contact point
