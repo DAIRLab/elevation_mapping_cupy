@@ -381,8 +381,14 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
       // be retrieving the map at least as fast as we receive new pointclouds
       // (i.e. publish_map_fps = 50, pointcloud_fps = 30)
       std::lock_guard<std::mutex> lock(mapMutex_);
-      map_z = gridMap_.atPosition("elevation", stance_pos.head<2>(),
+      try {
+        map_z = gridMap_.atPosition("elevation", stance_pos.head<2>(),
                                   grid_map::InterpolationMethods::INTER_LINEAR);
+      } catch (std::out_of_range& ex) {
+        ROS_ERROR("%s", ex.what());
+        initializeWithTF();
+      }
+      
     }
     if (!std::isnan(map_z)) {
       map_.shift_map_z(stance_pos(2) - map_z);
