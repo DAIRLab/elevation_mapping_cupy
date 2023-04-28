@@ -335,6 +335,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   auto timeStamp = cloud.header.stamp;
   std::string sensorFrameId = cloud.header.frame_id;
 
+
   pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
 
   /*
@@ -388,6 +389,23 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
       try {
         map_z = gridMap_.atPosition("elevation", stance_pos.head<2>(),
                                   grid_map::InterpolationMethods::INTER_LINEAR);
+
+        // We are trying to get the median for the points around the center of the gridMap
+        grid_map::Position center_sub_map = stance_pos.head<2>(); //Position in the foot frame
+        grid_map::Length length_sub_map = {0.25, 0.25}; //
+        bool success;
+
+        // Getting the submap of where the foot location is
+        auto subMap = gridMap_.getSubmap(center_sub_map, length_sub_map, success);
+        if (success) {
+          // Retrieving the data and making the median of the values
+          const auto& mat = subMap.get("elevation");
+          std::vector<double> zvals(mat.data(), mat.data() + mat.rows() * mat.cols());
+          std::sort(zvals.begin(), zvals.end());
+          int n = zvals.size() / 2;
+          map_z = (n % 2 == 0) ? 0.5 * (zvals.at(n-1) + zvals.at(n)) : zvals.at(n);
+        }
+
       } catch (std::out_of_range& ex) {
         ROS_ERROR("%s", ex.what());
         initializeWithTF();
