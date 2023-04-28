@@ -357,6 +357,10 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   }
   applyFootCropBoxCassie(cloud_filtered, tf_X_LC, tf_X_RC);
 
+  // set updatePose fps to 0 and only update in the pointcloud callback to
+  // avoid artifacts
+  updatePose(ros::TimerEvent{});
+
   // shift the map to align with the stance foot
   std::string stanceFrame = "";
   {
@@ -388,16 +392,11 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
         ROS_ERROR("%s", ex.what());
         initializeWithTF();
       }
-      
     }
     if (!std::isnan(map_z)) {
       map_.shift_map_z(stance_pos(2) - map_z);
     }
   }
-
-  // set updatePose fps to 0 and only update in the pointcloud callback to
-  // avoid artifacts
-  updatePose(ros::TimerEvent{});
 
   /*
    *  End dair custom mods
@@ -424,8 +423,11 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   
   // ROS_INFO("Frame id", filter_msg.header.frame_id);
   map_.input(cloud_filtered, transformationSensorToMap.rotation(),
-             transformationSensorToMap.translation(), positionError,
+             transformationSensorToMap.translation() - pointcloud_bias_,
+             positionError,
              orientationError);
+
+  updateGridMap(ros::TimerEvent{});
 
   if (enablePointCloudPublishing_) {
     pcl::PCLPointCloud2 filtered_pc;
