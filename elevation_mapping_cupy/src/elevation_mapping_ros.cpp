@@ -67,6 +67,9 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
   nh.param<double>("publish_statistics_fps", publishStatisticsFps, 1.0);
   
   // Custom filter params
+  std::vector<double> pointcloud_bias_param;
+  nh.param<std::vector<double>>("pointcloud_bias", pointcloud_bias_param, {0.0, 0.0, 0.0});
+  pointcloud_bias_ = Eigen::Vector3d::Map(pointcloud_bias_param.data());
   nh.param<double>("y_min", y_min_, -0.45);
   nh.param<double>("foot_mask_x_extent", foot_mask_x_extent_, 0.35);
   nh.param<double>("foot_mask_y_extent", foot_mask_y_extent_, -0.1);
@@ -334,7 +337,6 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>);
   auto timeStamp = cloud.header.stamp;
   std::string sensorFrameId = cloud.header.frame_id;
-
 
   pcl::fromPCLPointCloud2(pcl_pc, *cloud_filtered);
 

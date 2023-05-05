@@ -147,11 +147,11 @@ class ElevationMappingNode {
   double depth_max_;
   const std::string left_toe_frame_ = "toe_left";
   const std::string right_toe_frame_ = "toe_right";
-  const Eigen::Vector3d pointcloud_bias_{0.0, 0.0, -0.025};
   const Eigen::Vector3d toe_front_{-0.0457, 0.112, 0.0};
   const Eigen::Vector3d toe_rear_{0.088, 0.0, 0.0};
   const Eigen::Vector3d crop_box_origin_{-0.2, 0.0, 0.2};
   const Eigen::Vector3d toe_mid_ = 0.5 * (toe_front_ + toe_rear_);
+  Eigen::Vector3d pointcloud_bias_{0.0, 0.0, 0.0};
 
 
 

@@ -30,6 +30,7 @@ map_acquire_fps: 0.0                          # Raw map is fetched from GPU memo
 publish_statistics_fps: 1.0                     # Publish statistics topic in this fps.
 
 # DAIR Custom filter params
+pointcloud_bias: [0.0, 0.0, -0.025]
 y_min: -0.27
 foot_mask_x_extent: 0.35
 foot_mask_y_extent: -0.22
