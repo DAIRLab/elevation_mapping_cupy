@@ -140,4 +140,15 @@ convex_plane_decomposition_msgs::PolygonWithHoles2d toMessage(const CgalPolygonW
   return msg;
 }
 
+convex_plane_decomposition_msgs::TimingStatistics
+toMessage(const Timer& preprocessing_timer, const Timer& sliding_window_timer,
+          const Timer& contour_extraction_timer, const ros::Time& stamp) {
+  convex_plane_decomposition_msgs::TimingStatistics msg;
+  msg.stamp = stamp;
+  msg.preprocess_nanoseconds = preprocessing_timer.getLastIntervalInNanoseconds();
+  msg.sliding_window_nanoseconds = sliding_window_timer.getLastIntervalInNanoseconds();
+  msg.contour_extraction_nanoseconds = contour_extraction_timer.getLastIntervalInNanoseconds();
+  return msg;
+}
+
 }  // namespace convex_plane_decomposition

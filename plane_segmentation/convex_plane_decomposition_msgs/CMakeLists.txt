@@ -21,6 +21,7 @@ add_message_files(
     Point2d.msg
     Polygon2d.msg
     PolygonWithHoles2d.msg
+    TimingStatistics.msg
 )
 
 generate_messages(

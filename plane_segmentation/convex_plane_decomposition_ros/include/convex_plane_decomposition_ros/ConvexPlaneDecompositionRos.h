@@ -49,6 +49,7 @@ class ConvexPlaneExtractionROS {
   ros::Publisher boundaryPublisher_;
   ros::Publisher insetPublisher_;
   ros::Publisher regionPublisher_;
+  ros::Publisher statisticsPublisher_;
   tf2_ros::Buffer tfBuffer_;
   tf2_ros::TransformListener tfListener_;
 

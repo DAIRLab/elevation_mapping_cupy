@@ -6,6 +6,7 @@
 
 #include <convex_plane_decomposition/PlaneDecompositionPipeline.h>
 #include <convex_plane_decomposition_msgs/PlanarTerrain.h>
+#include <convex_plane_decomposition_msgs/TimingStatistics.h>
 
 #include "convex_plane_decomposition_ros/MessageConversion.h"
 #include "convex_plane_decomposition_ros/ParameterLoading.h"
@@ -22,6 +23,7 @@ ConvexPlaneExtractionROS::ConvexPlaneExtractionROS(ros::NodeHandle& nodeHandle) 
     boundaryPublisher_ = nodeHandle.advertise<visualization_msgs::MarkerArray>("boundaries", 1);
     insetPublisher_ = nodeHandle.advertise<visualization_msgs::MarkerArray>("insets", 1);
     regionPublisher_ = nodeHandle.advertise<convex_plane_decomposition_msgs::PlanarTerrain>("planar_terrain", 1);
+    statisticsPublisher_ = nodeHandle.advertise<convex_plane_decomposition_msgs::TimingStatistics>("timing_statistics", 1);
   }
 }
 
@@ -139,6 +141,11 @@ void ConvexPlaneExtractionROS::callback(const grid_map_msgs::GridMap& message) {
   if (publishToController_) {
     regionPublisher_.publish(toMessage(planarTerrain));
   }
+  statisticsPublisher_.publish(toMessage(
+      planeDecompositionPipeline_->getPrepocessTimer(),
+      planeDecompositionPipeline_->getSlidingWindowTimer(),
+      planeDecompositionPipeline_->getContourExtractionTimer(),
+      ros::Time::now()));
 
   // --- Visualize in Rviz --- Not published to the controller
   // Add raw map

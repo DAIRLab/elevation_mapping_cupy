@@ -1,2 +1,4 @@
- Header header
- float64 pointcloud_process_fps
+time stamp
+uint64 pointcloud_preprocess_nanoseconds
+uint64 gridmap_update_nanoseconds
+uint64 total_callback_nanoseconds

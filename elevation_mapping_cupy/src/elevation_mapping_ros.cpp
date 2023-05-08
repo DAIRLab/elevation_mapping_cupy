@@ -159,10 +159,6 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
     double duration = 1.0 / (updateGridMapFps + 0.00001);
     updateGridMapTimer_ = nh_.createTimer(ros::Duration(duration), &ElevationMappingNode::updateGridMap, this, false, true);
   }
-  if (publishStatisticsFps > 0) {
-    double duration = 1.0 / (publishStatisticsFps + 0.00001);
-    publishStatisticsTimer_ = nh_.createTimer(ros::Duration(duration), &ElevationMappingNode::publishStatistics, this, false, true);
-  }
   lastStatisticsPublishedTime_ = ros::Time::now();
   ROS_INFO("[ElevationMappingCupy] finish initialization");
 }
@@ -331,6 +327,7 @@ void ElevationMappingNode::applyFootCropBoxCassie(
 }
 
 void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cloud) {
+  auto begin_callback = std::chrono::high_resolution_clock::now();
   auto start = ros::Time::now();
   pcl::PCLPointCloud2 pcl_pc;
   pcl_conversions::toPCL(cloud, pcl_pc);
@@ -344,6 +341,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
    *  Begin dair custom mods
    */
 
+  auto begin_preprocess = std::chrono::high_resolution_clock::now();
   // Pointcloud processing
   preprocessPointcloudCassie(cloud_filtered);
   tf::StampedTransform tf_X_LC, tf_X_RC;
@@ -360,6 +358,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
   }
   applyFootCropBoxCassie(cloud_filtered, tf_X_LC, tf_X_RC);
 
+  auto end_preprocess = std::chrono::high_resolution_clock::now();
   // set updatePose fps to 0 and only update in the pointcloud callback to
   // avoid artifacts
   updatePose(ros::TimerEvent{});
@@ -440,7 +439,9 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
     positionError = positionError_;
     orientationError = orientationError_;
   }
-  
+
+  auto begin_map_update = std::chrono::high_resolution_clock::now();
+
   // ROS_INFO("Frame id", filter_msg.header.frame_id);
   map_.input(cloud_filtered, transformationSensorToMap.rotation(),
              transformationSensorToMap.translation() - pointcloud_bias_,
@@ -448,6 +449,8 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
              orientationError);
 
   updateGridMap(ros::TimerEvent{});
+
+  auto end_map_update = std::chrono::high_resolution_clock::now();
 
   if (enablePointCloudPublishing_) {
     pcl::PCLPointCloud2 filtered_pc;
@@ -461,14 +464,14 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
     publishMapToOdom(map_.get_additive_mean_error());
   }
 
-  ROS_DEBUG_THROTTLE(
-      1.0,
-      "ElevationMap processed a point cloud (%i points) in %f sec.",
-      static_cast<int>(cloud_filtered->size()),
-      (ros::Time::now() - start).toSec());
-  ROS_DEBUG_THROTTLE(1.0, "positionError: %f ", positionError);
-  ROS_DEBUG_THROTTLE(1.0, "orientationError: %f ", orientationError);
-  // This is used for publishing as statistics.
+  auto end_callback = std::chrono::high_resolution_clock::now();
+  // publish profiling info
+  elevation_map_msgs::Statistics msg;
+  msg.stamp = start;
+  msg.pointcloud_preprocess_nanoseconds =  std::chrono::duration_cast<std::chrono::nanoseconds>(end_preprocess - begin_preprocess).count();
+  msg.gridmap_update_nanoseconds =  std::chrono::duration_cast<std::chrono::nanoseconds>(end_map_update - begin_map_update).count();
+  msg.total_callback_nanoseconds =  std::chrono::duration_cast<std::chrono::nanoseconds>(end_callback - begin_callback).count();
+  statisticsPub_.publish(msg);
   pointCloudProcessCounter_++;
 }
 
@@ -674,18 +677,18 @@ void ElevationMappingNode::updateTime(const ros::TimerEvent&) {
   map_.update_time();
 }
 
-void ElevationMappingNode::publishStatistics(const ros::TimerEvent&) {
-  ros::Time now = ros::Time::now();
-  double dt = (now - lastStatisticsPublishedTime_).toSec();
-  lastStatisticsPublishedTime_ = now;
-  elevation_map_msgs::Statistics msg;
-  msg.header.stamp = now;
-  if (dt > 0.0) {
-    msg.pointcloud_process_fps = pointCloudProcessCounter_ / dt;
-  }
-  pointCloudProcessCounter_ = 0;
-  statisticsPub_.publish(msg);
-}
+//void ElevationMappingNode::publishStatistics(const ros::TimerEvent&) {
+//  ros::Time now = ros::Time::now();
+//  double dt = (now - lastStatisticsPublishedTime_).toSec();
+//  lastStatisticsPublishedTime_ = now;
+//  elevation_map_msgs::Statistics msg;
+//  msg.header.stamp = now;
+//  if (dt > 0.0) {
+//    msg.pointcloud_process_fps = pointCloudProcessCounter_ / dt;
+//  }
+//  pointCloudProcessCounter_ = 0;
+//  statisticsPub_.publish(msg);
+//}
 
 void ElevationMappingNode::updateGridMap(const ros::TimerEvent&) {
   std::vector<std::string> layers(map_layers_all_.begin(), map_layers_all_.end());

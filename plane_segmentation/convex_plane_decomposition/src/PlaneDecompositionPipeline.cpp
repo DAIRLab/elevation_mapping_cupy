@@ -27,15 +27,15 @@ void PlaneDecompositionPipeline::update(grid_map::GridMap&& gridMap, const std::
   planarTerrain_.planarRegions = contourExtraction_.extractPlanarRegions(slidingWindowPlaneExtractor_.getSegmentedPlanesMap());
   contourExtractionTimer_.endTimer();
 
-  postprocessTimer_.startTimer();
-  // Add binary map
-  const std::string planeClassificationLayer{"plane_classification"};
-  planarTerrain_.gridMap.add(planeClassificationLayer);
-  auto& traversabilityMask = planarTerrain_.gridMap.get(planeClassificationLayer);
-  cv::cv2eigen(slidingWindowPlaneExtractor_.getBinaryLabeledImage(), traversabilityMask);
-
-  postprocessing_.postprocess(planarTerrain_, elevationLayer, planeClassificationLayer);
-  postprocessTimer_.endTimer();
+//  postprocessTimer_.startTimer();
+//  // Add binary map
+//  const std::string planeClassificationLayer{"plane_classification"};
+//  planarTerrain_.gridMap.add(planeClassificationLayer);
+//  auto& traversabilityMask = planarTerrain_.gridMap.get(planeClassificationLayer);
+//  cv::cv2eigen(slidingWindowPlaneExtractor_.getBinaryLabeledImage(), traversabilityMask);
+//
+//  postprocessing_.postprocess(planarTerrain_, elevationLayer, planeClassificationLayer);
+//  postprocessTimer_.endTimer();
 }
 
 void PlaneDecompositionPipeline::getSegmentation(grid_map::GridMap::Matrix& segmentation) const {

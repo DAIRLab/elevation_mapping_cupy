@@ -12,9 +12,11 @@
 #include <convex_plane_decomposition_msgs/Point2d.h>
 #include <convex_plane_decomposition_msgs/Polygon2d.h>
 #include <convex_plane_decomposition_msgs/PolygonWithHoles2d.h>
+#include <convex_plane_decomposition_msgs/TimingStatistics.h>
 
 #include <convex_plane_decomposition/PlanarRegion.h>
 #include <convex_plane_decomposition/PolygonTypes.h>
+#include <convex_plane_decomposition/Timer.h>
 
 namespace convex_plane_decomposition {
 
@@ -38,5 +40,11 @@ convex_plane_decomposition_msgs::Polygon2d toMessage(const CgalPolygon2d& polygo
 
 CgalPolygonWithHoles2d fromMessage(const convex_plane_decomposition_msgs::PolygonWithHoles2d& msg);
 convex_plane_decomposition_msgs::PolygonWithHoles2d toMessage(const CgalPolygonWithHoles2d& polygonWithHoles2d);
+
+convex_plane_decomposition_msgs::TimingStatistics toMessage(
+    const Timer& preprocessing_timer,
+    const Timer& sliding_window_timer,
+    const Timer& contour_extraction_timer,
+    const ros::Time& stamp);
 
 }  // namespace convex_plane_decomposition
