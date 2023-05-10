@@ -413,7 +413,10 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
       }
     }
     if (!std::isnan(map_z)) {
-      map_.shift_map_z(stance_pos(2) - map_z);
+      double shift = stance_pos(2) - map_z;
+      if (abs(shift) < 0.025) {
+        map_.shift_map_z(stance_pos(2) - map_z);
+      }
     }
   }
 
