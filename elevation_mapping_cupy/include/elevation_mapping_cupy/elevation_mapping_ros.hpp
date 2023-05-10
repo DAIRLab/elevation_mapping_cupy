@@ -145,6 +145,7 @@ class ElevationMappingNode {
   double foot_mask_y_extent_;
   double depth_min_;
   double depth_max_;
+  double stance_foot_drift_thresh_;
   const std::string left_toe_frame_ = "toe_left";
   const std::string right_toe_frame_ = "toe_right";
   const Eigen::Vector3d toe_front_{-0.0457, 0.112, 0.0};

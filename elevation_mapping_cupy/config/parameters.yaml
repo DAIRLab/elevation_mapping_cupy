@@ -30,12 +30,14 @@ map_acquire_fps: 0.0                          # Raw map is fetched from GPU memo
 publish_statistics_fps: 1.0                     # Publish statistics topic in this fps.
 
 # DAIR Custom filter params
-pointcloud_bias: [0.0, 0.0, 0.0]
+pointcloud_bias: [0.0, 0.0, -0.025]
 y_min: -0.27
 foot_mask_x_extent: 0.35
 foot_mask_y_extent: -0.22
 depth_min: 0.75
 depth_max: 2.0
+
+stance_foot_drift_thresh: 0.1                   # Error threshold for stance foot drift correction (-1 to deactivate)
 
 max_ray_length: 10.0                            # maximum length for ray tracing.
 cleanup_step: 4.0                               # subtitute this value from validity layer at visibiltiy cleanup.

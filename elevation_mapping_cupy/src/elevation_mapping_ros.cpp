@@ -75,6 +75,7 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
   nh.param<double>("foot_mask_y_extent", foot_mask_y_extent_, -0.1);
   nh.param<double>("depth_min", depth_min_, 0.75);
   nh.param<double>("depth_max", depth_max_, 2.0);
+  nh.param<double>("stance_foot_drift_thresh", stance_foot_drift_thresh_, 1.0);
   
   nh.param<bool>("enable_pointcloud_publishing", enablePointCloudPublishing, false);
   nh.param<bool>("enable_normal_arrow_publishing", enableNormalArrowPublishing_, false);
@@ -414,7 +415,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
     }
     if (!std::isnan(map_z)) {
       double shift = stance_pos(2) - map_z;
-      if (abs(shift) < 0.025) {
+      if (abs(shift) < stance_foot_drift_thresh_) {
         map_.shift_map_z(stance_pos(2) - map_z);
       }
     }
