@@ -24,6 +24,7 @@ class GridMapPreprocessing {
  private:
   void erode(grid_map::GridMap& gridMap, const std::string& layer) const; 
   void denoise(grid_map::GridMap& gridMap, const std::string& layer) const;
+  void denoiseBox(grid_map::GridMap& gridMap, const std::string& layer) const;
   void changeResolution(grid_map::GridMap& gridMap, const std::string& layer) const;
   void inpaint(grid_map::GridMap& gridMap, const std::string& layer) const;
 

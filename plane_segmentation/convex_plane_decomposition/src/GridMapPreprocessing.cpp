@@ -16,12 +16,18 @@ void GridMapPreprocessing::preprocess(grid_map::GridMap& gridMap, const std::str
   // inpaint(gridMap, layer);
   erode(gridMap, layer);
   denoise(gridMap, layer);
+  denoiseBox(gridMap, layer);
   // changeResolution(gridMap, layer);
 }
 
 void GridMapPreprocessing::denoise(grid_map::GridMap& gridMap, const std::string& layer) const {
   int kernelSize = std::max(1, std::min(parameters_.kernelSize, 5));  // must be 1, 3 or 5 for current image type, see doc of cv::medianBlur
   grid_map::smoothing::median(gridMap, layer, layer, kernelSize, 0, parameters_.numberOfRepeats);
+}
+
+void GridMapPreprocessing::denoiseBox(grid_map::GridMap& gridMap, const std::string& layer) const {
+  int kernelSize = std::max(1, std::min(parameters_.kernelSize, 5));
+  grid_map::smoothing::gaussianBlur(gridMap, layer, layer, kernelSize, 0.025);
 }
 
 void GridMapPreprocessing::changeResolution(grid_map::GridMap& gridMap, const std::string& layer) const {

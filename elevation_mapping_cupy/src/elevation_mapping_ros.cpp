@@ -393,7 +393,7 @@ void ElevationMappingNode::pointcloudCallback(const sensor_msgs::PointCloud2& cl
 
         // We are trying to get the median for the points around the center of the gridMap
         grid_map::Position center_sub_map = stance_pos.head<2>(); //Position in the foot frame
-        grid_map::Length length_sub_map = {0.25, 0.25}; //
+        grid_map::Length length_sub_map = {0.075, 0.075}; //
         bool success;
 
         // Getting the submap of where the foot location is
