@@ -1,7 +1,8 @@
 preprocessing:
   resolution: -1      # Resampling resolution, set negative to skip, requires inpainting to be used
-  kernelSize: 3       # Kernel size of the median filter, either 3 or 5
+  kernelSize: 5       # Kernel size of the median filter, either 3 or 5
   numberOfRepeats: 1  # Number of times to apply the same filter
+  gaussBlur: 0
 
 sliding_window_plane_extractor:
   kernel_size: 3                                        # Size of the sliding window patch used for normal vector calculation and planarity detection. Should be an odd number and at least 3.

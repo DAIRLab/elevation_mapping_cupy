@@ -13,6 +13,8 @@ struct PreprocessingParameters {
   int kernelSize = 3;
   /// Number of times the image is filtered
   int numberOfRepeats = 2;
+  /// sigma for gaussian blur, set to -1 to skip
+  double gaussBlur = 0;
 };
 
 class GridMapPreprocessing {
@@ -24,7 +26,7 @@ class GridMapPreprocessing {
  private:
   void erode(grid_map::GridMap& gridMap, const std::string& layer) const; 
   void denoise(grid_map::GridMap& gridMap, const std::string& layer) const;
-  void denoiseBox(grid_map::GridMap& gridMap, const std::string& layer) const;
+  void smooth(grid_map::GridMap& gridMap, const std::string& layer) const;
   void changeResolution(grid_map::GridMap& gridMap, const std::string& layer) const;
   void inpaint(grid_map::GridMap& gridMap, const std::string& layer) const;
 
