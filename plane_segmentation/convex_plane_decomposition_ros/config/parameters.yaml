@@ -2,7 +2,7 @@ preprocessing:
   resolution: -1      # Resampling resolution, set negative to skip, requires inpainting to be used
   kernelSize: 5       # Kernel size of the median filter, either 3 or 5
   numberOfRepeats: 2  # Number of times to apply the same filter
-  gaussBlur: 2.0
+  gaussBlur: 5
 
 
 sliding_window_plane_extractor:
