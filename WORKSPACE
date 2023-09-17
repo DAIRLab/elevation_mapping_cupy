@@ -29,7 +29,7 @@ pcl_init_deps()
 # grid map
 http_archive(
     name = "grid_map",
-    sha256 = "a8e4f8678680a5a88b4786903f84ecc5f86cb54e20ca675d7aed22493ce6dc86",
+    sha256 = "3550f9d039ae40421fa17017790aff015053ea6080dd6cd57870465dc2f1d85f",
     strip_prefix = "grid_map_bazel-main",
     url = "https://github.com/Brian-Acosta/grid_map_bazel/archive/main.tar.gz",
 )
