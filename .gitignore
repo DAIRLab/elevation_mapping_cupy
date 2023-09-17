@@ -4,4 +4,5 @@
 .vscode/
 */.vscode/
 .idea/
+.clwb/
 bazel-*
