@@ -1,0 +1,30 @@
+# Optimize
+build --compilation_mode opt
+build --copt -g
+
+build --keep_going
+
+# Fix the wrong default to generate __init__.py to delimit a Python package.
+build --incompatible_default_to_explicit_init_py
+build --cxxopt='-std=c++20'
+
+# Ensure that you don't accidentally make non-hermetic actions/tests
+# which depend on remote services. Tag an individual target with
+# tags=["requires-network"] to opt-out of the enforcement.
+build --sandbox_default_allow_network=false
+
+# Don't let environment variables like $PATH sneak into the build,
+# which can cause massive cache misses when they change.
+build --incompatible_strict_action_env
+
+# Helps debugging when Bazel runs out of memory
+build --heap_dump_on_oom
+
+# Speed up all builds by not checking if output files have been modified.
+build --noexperimental_check_output_files
+
+build --nolegacy_external_runfiles
+run --nolegacy_external_runfiles
+test --nolegacy_external_runfiles
+
+test --test_output=errors

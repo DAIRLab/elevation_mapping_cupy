@@ -12,24 +12,24 @@
 #include <Eigen/Dense>
 
 // Pybind
-#include <pybind11/embed.h>  // everything needed for embedding
+//#include <pybind11/embed.h>  // everything needed for embedding
 
 // ROS
-#include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <std_srvs/Empty.h>
-#include <tf/transform_listener.h>
+//#include <geometry_msgs/PoseWithCovarianceStamped.h>
+//#include <ros/ros.h>
+//#include <sensor_msgs/PointCloud2.h>
+//#include <std_srvs/Empty.h>
+//#include <tf/transform_listener.h>
 
 // Grid Map
-#include <grid_map_msgs/GetGridMap.h>
-#include <grid_map_msgs/GridMap.h>
-#include <grid_map_ros/grid_map_ros.hpp>
+//#include <grid_map_msgs/GetGridMap.h>
+//#include <grid_map_msgs/GridMap.h>
+#include <grid_map_core/grid_map_core.hpp>
 
 // PCL
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
+//#include <pcl_conversions/pcl_conversions.h>
 
 namespace py = pybind11;
 

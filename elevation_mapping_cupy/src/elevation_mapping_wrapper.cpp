@@ -3,7 +3,7 @@
 // Licensed under the MIT license. See LICENSE file in the project root for details.
 //
 
-#include "elevation_mapping_cupy/elevation_mapping_wrapper.hpp"
+#include "elevation_mapping_wrapper.hpp"
 
 // Pybind
 #include <pybind11/eigen.h>

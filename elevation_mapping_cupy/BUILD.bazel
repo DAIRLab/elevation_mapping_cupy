@@ -1,0 +1,12 @@
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "elevation_mapping_wrapper",
+    srcs = ["src/elevation_mapping_wrapper.cpp"],
+    hdrs = ["src/elevation_mapping_wrapper.hpp"],
+    deps = [
+        "@grid_map//grid_map_core",
+        "@pcl//:common",
+    ],
+    data = glob(["script/elevation_mapping_cupy/**/*.py"])
+)
