@@ -5,6 +5,8 @@ cc_library(
     srcs = ["src/elevation_mapping_wrapper.cpp"],
     hdrs = ["src/elevation_mapping_wrapper.hpp"],
     deps = [
+        "@pybind11",
+        "@pybind11//:pybind11_embed",
         "@grid_map//grid_map_core",
         "@pcl//:common",
     ],

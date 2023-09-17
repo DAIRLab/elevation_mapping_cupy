@@ -11,9 +11,6 @@
 // PCL
 #include <pcl/common/projection_matrix.h>
 
-// ROS
-#include <ros/package.h>
-
 namespace elevation_mapping_cupy {
 
 ElevationMappingWrapper::ElevationMappingWrapper() {}
