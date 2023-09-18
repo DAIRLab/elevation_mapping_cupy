@@ -13,17 +13,19 @@ cc_library(
     ],
 )
 
-#cc_library(
-#    name = "elevation_mapping_pipeline",
-#    srcs = ["src/elevation_mapping_pipeline.cpp"],
-#    hdrs = ["src/elevation_mapping_pipeline.hpp"],
-#    deps = [":elevation_mapping_wrapper"],
-#)
+cc_library(
+    name = "elevation_mapping_pipeline",
+    srcs = ["src/elevation_mapping_pipeline.cpp"],
+    hdrs = ["src/elevation_mapping_pipeline.hpp"],
+    deps = [":elevation_mapping_wrapper"],
+)
 
 cc_binary(
     name = "elevation_mapping_pipeline_test",
     srcs = ["src/elevation_mapping_pipeline_test.cpp"],
     deps = [
         ":elevation_mapping_wrapper",
+        "@pcl//:common",
+        "@pcl//:filters",
     ],
 )

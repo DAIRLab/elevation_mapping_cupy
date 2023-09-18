@@ -8,15 +8,8 @@
 // Pybind
 #include <pybind11/eigen.h>
 
-// ROS
-#include <geometry_msgs/Point32.h>
-#include <ros/package.h>
-#include <tf_conversions/tf_eigen.h>
-
 // PCL
 #include <pcl/common/projection_matrix.h>
-
-#include <elevation_map_msgs/Statistics.h>
 
 // filters
 #include <pcl/filters/passthrough.h>
@@ -28,7 +21,7 @@ namespace elevation_mapping_cupy {
 
 using Eigen::Vector3d;
 
-ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
+ElevationMappingNode::ElevationMappingNode()
     : lowpassPosition_(0, 0, 0),
       lowpassOrientation_(0, 0, 0, 1),
       positionError_(0),
@@ -144,95 +137,8 @@ ElevationMappingNode::ElevationMappingNode(ros::NodeHandle& nh)
   setPublishPointService_ = nh_.advertiseService("set_publish_points", &ElevationMappingNode::setPublishPoint, this);
   checkSafetyService_ = nh_.advertiseService("check_safety", &ElevationMappingNode::checkSafety, this);
 
-  if (updateVarianceFps > 0) {
-    double duration = 1.0 / (updateVarianceFps + 0.00001);
-    updateVarianceTimer_ = nh_.createTimer(ros::Duration(duration), &ElevationMappingNode::updateVariance, this, false, true);
-  }
-  if (timeInterval > 0) {
-    double duration = timeInterval;
-    updateTimeTimer_ = nh_.createTimer(ros::Duration(duration), &ElevationMappingNode::updateTime, this, false, true);
-  }
-  if (updatePoseFps > 0) {
-    double duration = 1.0 / (updatePoseFps + 0.00001);
-    updatePoseTimer_ = nh_.createTimer(ros::Duration(duration), &ElevationMappingNode::updatePose, this, false, true);
-  }
-  if (updateGridMapFps > 0) {
-    double duration = 1.0 / (updateGridMapFps + 0.00001);
-    updateGridMapTimer_ = nh_.createTimer(ros::Duration(duration), &ElevationMappingNode::updateGridMap, this, false, true);
-  }
-  lastStatisticsPublishedTime_ = ros::Time::now();
-  ROS_INFO("[ElevationMappingCupy] finish initialization");
 }
 
-// setup map publishers
-void ElevationMappingNode::setupMapPublishers() {
-  // Find the layers with highest fps.
-  float max_fps = -1;
-  // create timers for each unique map frequencies
-  for (auto fps : map_fps_unique_) {
-    // which publisher to call in the timer callback
-    std::vector<int> indices;
-    // if this fps is max, update the map layers.
-    if (fps >= max_fps) {
-      max_fps = fps;
-      map_layers_all_.clear();
-    }
-    for (int i = 0; i < map_fps_.size(); i++) {
-      if (map_fps_[i] == fps) {
-        indices.push_back(i);
-        // if this fps is max, add layers
-        if (fps >= max_fps) {
-          for (const auto layer : map_layers_[i]) {
-            map_layers_all_.insert(layer);
-          }
-        }
-      }
-    }
-    // callback funtion.
-    // It publishes to specific topics.
-    auto cb = [this, indices](const ros::TimerEvent&) {
-      for (int i : indices) {
-        publishMapOfIndex(i);
-      }
-    };
-    double duration = 1.0 / (fps + 0.00001);
-    mapTimers_.push_back(nh_.createTimer(ros::Duration(duration), cb));
-  }
-}
-
-void ElevationMappingNode::publishMapOfIndex(int index) {
-  // publish the map layers of index
-  if (!isGridmapUpdated_) {
-    return;
-  }
-  grid_map_msgs::GridMap msg;
-  std::vector<std::string> layers;
-
-  {  // need continuous lock between adding layers and converting to message. Otherwise updateGridmap can reset the data not in
-     // map_layers_all_
-    std::lock_guard<std::mutex> lock(mapMutex_);
-    for (const auto& layer : map_layers_[index]) {
-      const bool is_layer_in_all = map_layers_all_.find(layer) != map_layers_all_.end();
-      if (is_layer_in_all && gridMap_.exists(layer)) {
-        layers.push_back(layer);
-      } else if (map_.exists_layer(layer)) {
-        // if there are layers which is not in the syncing layer.
-        ElevationMappingWrapper::RowMatrixXf map_data;
-        map_.get_layer_data(layer, map_data);
-        gridMap_.add(layer, map_data);
-        layers.push_back(layer);
-      }
-    }
-    if (layers.empty()) {
-      return;
-    }
-
-    grid_map::GridMapRosConverter::toMessage(gridMap_, layers, msg);
-  }
-
-  msg.basic_layers = map_basic_layers_[index];
-  mapPubs_[index].publish(msg);
-}
 
 void ElevationMappingNode::stanceFootCallback(const std_msgs::String& msg) {
   std::lock_guard<std::mutex> lock(stanceMutex_);

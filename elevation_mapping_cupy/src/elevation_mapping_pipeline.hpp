@@ -15,27 +15,14 @@
 // Pybind
 #include <pybind11/embed.h>  // everything needed for embedding
 
-// ROS
-#include <std_msgs/String.h>
-#include <geometry_msgs/PolygonStamped.h>
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <std_srvs/Empty.h>
-#include <std_srvs/SetBool.h>
-#include <tf/transform_broadcaster.h>
-#include <tf/transform_listener.h>
-#include <visualization_msgs/Marker.h>
-#include <visualization_msgs/MarkerArray.h>
-
 // Grid Map
 #include <grid_map_msgs/GetGridMap.h>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 
 // PCL
-#include <pcl/PCLPointCloud2.h>
+#include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/crop_box.h>
 
 #include <elevation_map_msgs/CheckSafety.h>
@@ -47,9 +34,15 @@ namespace py = pybind11;
 
 namespace elevation_mapping_cupy {
 
+struct ElevationMappingStatistics {
+  uint64_t pointcloud_preprocess_nanoseconds;
+  uint64_t gridmap_update_nanoseconds;
+  uint64_t total_callback_nanoseconds;
+};
+
 class ElevationMappingNode {
  public:
-  ElevationMappingNode(ros::NodeHandle& nh);
+  ElevationMappingNode();
 
  private:
   void readParameters();
@@ -78,34 +71,6 @@ class ElevationMappingNode {
   void publishMapOfIndex(int index);
   void setDynamicFootCropBoxParams(pcl::CropBox<pcl::PointXYZ>* crop_box, const Eigen::Affine3d& X_FC);
 
-  visualization_msgs::Marker vectorToArrowMarker(const Eigen::Vector3d& start, const Eigen::Vector3d& end, const int id) const;
-  ros::NodeHandle nh_;
-  std::vector<ros::Subscriber> pointcloudSubs_;
-  std::vector<ros::Publisher> mapPubs_;
-  ros::Subscriber stanceFootSub_;
-  tf::TransformBroadcaster tfBroadcaster_;
-  ros::Publisher alivePub_;
-  ros::Publisher pointPub_;
-  ros::Publisher pointPubFilter_;
-  ros::Publisher normalPub_;
-  ros::Publisher statisticsPub_;
-  ros::ServiceServer rawSubmapService_;
-  ros::ServiceServer clearMapService_;
-  ros::ServiceServer clearMapWithInitializerService_;
-  ros::ServiceServer initializeMapService_;
-  ros::ServiceServer setPublishPointService_;
-  ros::ServiceServer checkSafetyService_;
-  ros::Timer updateVarianceTimer_;
-  ros::Timer updateTimeTimer_;
-  ros::Timer updatePoseTimer_;
-  ros::Timer updateGridMapTimer_;
-  ros::Timer publishStatisticsTimer_;
-  ros::Time lastStatisticsPublishedTime_;
-  tf::TransformListener transformListener_;
-  ElevationMappingWrapper map_;
-  std::string mapFrameId_;
-  std::string correctedMapFrameId_;
-  std::string baseFrameId_;
 
   // map topics info
   std::vector<std::vector<std::string>> map_topics_;
