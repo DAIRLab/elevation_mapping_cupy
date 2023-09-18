@@ -23,8 +23,8 @@ void ElevationMappingWrapper::initialize(const std::string& param_yaml_fname) {
   auto sys = py::module::import("sys");
   auto path = sys.attr("path");
 
-  auto elevation_mapping = py::module::import("elevation_mapping_cupy.elevation_mapping");
-  auto parameter = py::module::import("elevation_mapping_cupy.parameter");
+  auto elevation_mapping = py::module::import("elevation_mapping_cupy.elevation_mapping_cupy.elevation_mapping");
+  auto parameter = py::module::import("elevation_mapping_cupy.elevation_mapping_cupy.parameter");
   param_ = parameter.attr("Parameter")();
   param_.attr("set_from_yaml")(param_yaml_fname);
   map_ = elevation_mapping.attr("ElevationMap")(param_);

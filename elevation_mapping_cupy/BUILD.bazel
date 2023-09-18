@@ -4,11 +4,26 @@ cc_library(
     name = "elevation_mapping_wrapper",
     srcs = ["src/elevation_mapping_wrapper.cpp"],
     hdrs = ["src/elevation_mapping_wrapper.hpp"],
+    data = ["//elevation_mapping_cupy/elevation_mapping_cupy:elevatiom_mapping_cupy"],
     deps = [
-        "@pybind11",
-        "@pybind11//:pybind11_embed",
         "@grid_map//grid_map_core",
         "@pcl//:common",
+        "@pybind11",
+        "@pybind11//:pybind11_embed",
     ],
-    data = glob(["script/elevation_mapping_cupy/**/*.py"])
+)
+
+#cc_library(
+#    name = "elevation_mapping_pipeline",
+#    srcs = ["src/elevation_mapping_pipeline.cpp"],
+#    hdrs = ["src/elevation_mapping_pipeline.hpp"],
+#    deps = [":elevation_mapping_wrapper"],
+#)
+
+cc_binary(
+    name = "elevation_mapping_pipeline_test",
+    srcs = ["src/elevation_mapping_pipeline_test.cpp"],
+    deps = [
+        ":elevation_mapping_wrapper",
+    ],
 )

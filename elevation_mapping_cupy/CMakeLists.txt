@@ -56,11 +56,11 @@ include_directories(
 
 add_library(elevation_mapping_ros
     src/elevation_mapping_wrapper.cpp
-    src/elevation_mapping_ros.cpp)
+        src/elevation_mapping_pipeline.cpp)
 
 target_link_libraries(elevation_mapping_ros ${PYTHON_LIBRARIES} ${catkin_LIBRARIES})
 
-add_executable(elevation_mapping_node src/elevation_mapping_node.cpp)
+add_executable(elevation_mapping_node src/elevation_mapping_pipeline_test.cpp)
 target_link_libraries(elevation_mapping_node elevation_mapping_ros)
 
 catkin_python_setup()
