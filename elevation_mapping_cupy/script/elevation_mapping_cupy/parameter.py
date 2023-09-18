@@ -3,9 +3,16 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 from dataclasses import dataclass
-import pickle
+from pydoc import locate
 import numpy as np
+import pickle
 import os
+
+import yaml
+try:
+    from yaml import CLoader as Loader, CDumper as Dumper
+except ImportError:
+    from yaml import Loader, Dumper
 
 
 @dataclass
@@ -88,6 +95,20 @@ class Parameter:
 
     def get_value(self, name):
         return getattr(self, name)
+
+    def set_from_yaml(self, fname):
+        with open(fname) as datafile:
+            try:
+                data = yaml.load(datafile, Loader=Loader)
+            except Exception as e:
+                print(f'Failed to load elevation mapping parameters!\n{e}')
+
+        param_names = self.get_names()
+        param_types = self.get_types()
+        for i, name in enumerate(param_names):
+            if name in data:
+                type = locate(param_types[i])
+                self.set_value(name, type(data[name]))
 
 
 if __name__ == "__main__":

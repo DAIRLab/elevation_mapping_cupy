@@ -15,69 +15,19 @@ namespace elevation_mapping_cupy {
 
 ElevationMappingWrapper::ElevationMappingWrapper() {}
 
-void ElevationMappingWrapper::initialize(ros::NodeHandle& nh) {
+void ElevationMappingWrapper::initialize(const std::string& param_yaml_fname) {
   // Add the elevation_mapping_cupy path to sys.path
   auto threading = py::module::import("threading");
   py::gil_scoped_acquire acquire;
 
   auto sys = py::module::import("sys");
   auto path = sys.attr("path");
-  std::string module_path = ros::package::getPath("elevation_mapping_cupy");
-  module_path = module_path + "/script";
-  path.attr("insert")(0, module_path);
 
   auto elevation_mapping = py::module::import("elevation_mapping_cupy.elevation_mapping");
   auto parameter = py::module::import("elevation_mapping_cupy.parameter");
   param_ = parameter.attr("Parameter")();
-  setParameters(nh);
+  param_.attr("set_from_yaml")(param_yaml_fname);
   map_ = elevation_mapping.attr("ElevationMap")(param_);
-}
-
-/**
- *  Load ros parameters into Parameter class.
- *  Search for the same name within the name space.
- */
-void ElevationMappingWrapper::setParameters(ros::NodeHandle& nh) {
-  // Get all parameters names and types.
-  py::list paramNames = param_.attr("get_names")();
-  py::list paramTypes = param_.attr("get_types")();
-  py::gil_scoped_acquire acquire;
-
-  // Try to find the parameter in the ros parameter server.
-  // If there was a parameter, set it to the Parameter variable.
-  for (int i = 0; i < paramNames.size(); i++) {
-    std::string type = py::cast<std::string>(paramTypes[i]);
-    std::string name = py::cast<std::string>(paramNames[i]);
-    if (type == "float") {
-      float param;
-      if (nh.getParam(name, param)) {
-        param_.attr("set_value")(name, param);
-      }
-    } else if (type == "str") {
-      std::string param;
-      if (nh.getParam(name, param)) {
-        param_.attr("set_value")(name, param);
-      }
-    } else if (type == "bool") {
-      bool param;
-      if (nh.getParam(name, param)) {
-        param_.attr("set_value")(name, param);
-      }
-    } else if (type == "int") {
-      int param;
-      if (nh.getParam(name, param)) {
-        param_.attr("set_value")(name, param);
-      }
-    }
-  }
-
-  resolution_ = py::cast<float>(param_.attr("get_value")("resolution"));
-  map_length_ = py::cast<float>(param_.attr("get_value")("map_length"));
-  map_n_ = static_cast<int>(round(map_length_ / resolution_));
-  map_length_ = resolution_ * map_n_;  // get true length after rounding
-
-  nh.param<bool>("enable_normal", enable_normal_, false);
-  nh.param<bool>("enable_normal_color", enable_normal_color_, false);
 }
 
 void ElevationMappingWrapper::input(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloud, const RowMatrixXd& R, const Eigen::VectorXd& t,

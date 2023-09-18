@@ -17,7 +17,7 @@
 #include <grid_map_core/grid_map_core.hpp>
 
 // PCL
-#include <pcl/PCLPointCloud2.h>
+#include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
 namespace py = pybind11;
@@ -31,9 +31,10 @@ class ElevationMappingWrapper {
 
   ElevationMappingWrapper();
 
-  void initialize(ros::NodeHandle& nh);
+  void initialize(const std::string& param_yaml_fname);
 
-  void input(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloud, const RowMatrixXd& R, const Eigen::VectorXd& t,
+  void input(const pcl::PointCloud<pcl::PointXYZ>::Ptr& pointCloud,
+             const RowMatrixXd& R, const Eigen::VectorXd& t,
              const double positionNoise, const double orientationNoise);
 
   void shift_map_z(const double delta_z);
@@ -52,7 +53,7 @@ class ElevationMappingWrapper {
   void addNormalColorLayer(grid_map::GridMap& map);
 
  private:
-  void setParameters(ros::NodeHandle& nh);
+//  void setParameters(ros::NodeHandle& nh);
   py::object map_;
   py::object param_;
   double resolution_;
