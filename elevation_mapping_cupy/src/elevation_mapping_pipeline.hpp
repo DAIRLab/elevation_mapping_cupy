@@ -7,7 +7,9 @@
 
 // STL
 #include <iostream>
+#include <algorithm>
 #include <mutex>
+#include <set>
 
 // Eigen
 #include <Eigen/Dense>
@@ -16,19 +18,14 @@
 #include <pybind11/embed.h>  // everything needed for embedding
 
 // Grid Map
-#include <grid_map_msgs/GetGridMap.h>
-#include <grid_map_msgs/GridMap.h>
-#include <grid_map_ros/grid_map_ros.hpp>
+#include <grid_map_core/grid_map_core.hpp>
 
 // PCL
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/crop_box.h>
 
-#include <elevation_map_msgs/CheckSafety.h>
-#include <elevation_map_msgs/Initialize.h>
-
-#include "elevation_mapping_cupy/elevation_mapping_wrapper.hpp"
+#include "elevation_mapping_wrapper.hpp"
 
 namespace py = pybind11;
 
@@ -46,29 +43,22 @@ class ElevationMappingNode {
 
  private:
   void readParameters();
-  void setupMapPublishers();
   void stanceFootCallback(const std_msgs::String& msg);
   void applyFootCropBoxCassie(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
                               const tf::StampedTransform& tf_X_LC,
                               const tf::StampedTransform& tf_X_RC);
-  void preprocessPointcloudCassie(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud);
+  void preprocessPointcloudCassie(pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) const;
   void pointcloudCallback(const sensor_msgs::PointCloud2& cloud);
-  void publishAsPointCloud(const grid_map::GridMap& map) const;
   bool getSubmap(grid_map_msgs::GetGridMap::Request& request, grid_map_msgs::GetGridMap::Response& response);
   bool checkSafety(elevation_map_msgs::CheckSafety::Request& request, elevation_map_msgs::CheckSafety::Response& response);
   bool initializeMap(elevation_map_msgs::Initialize::Request& request, elevation_map_msgs::Initialize::Response& response);
   bool clearMap(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   bool clearMapWithInitializer(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
-  bool setPublishPoint(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
   void updatePose(const ros::TimerEvent&);
   void updateVariance(const ros::TimerEvent&);
   void updateTime(const ros::TimerEvent&);
   void updateGridMap(const ros::TimerEvent&);
-  void publishNormalAsArrow(const grid_map::GridMap& map) const;
   void initializeWithTF();
-  void publishMapToOdom(double error);
-  void publishStatistics(const ros::TimerEvent&);
-  void publishMapOfIndex(int index);
   void setDynamicFootCropBoxParams(pcl::CropBox<pcl::PointXYZ>* crop_box, const Eigen::Affine3d& X_FC);
 
 
@@ -80,7 +70,6 @@ class ElevationMappingNode {
   std::set<std::string> map_layers_sync_;
   std::vector<double> map_fps_;
   std::set<double> map_fps_unique_;
-  std::vector<ros::Timer> mapTimers_;
 
   std::vector<std::string> initialize_frame_id_;
   std::vector<double> initialize_tf_offset_;
@@ -90,8 +79,7 @@ class ElevationMappingNode {
   Eigen::Vector3d lowpassPosition_;
   Eigen::Vector4d lowpassOrientation_;
 
-  std::mutex stanceMutex_;
-  std::string stanceFrameid_ = "";
+  std::string stanceFrameid_{};
 
   std::mutex mapMutex_;  // protects gridMap_
   grid_map::GridMap gridMap_;
@@ -119,16 +107,8 @@ class ElevationMappingNode {
   const Eigen::Vector3d toe_mid_ = 0.5 * (toe_front_ + toe_rear_);
   Eigen::Vector3d pointcloud_bias_{0.0, 0.0, 0.0};
 
-
-
-
-  double recordableFps_;
-  std::atomic_bool enablePointCloudPublishing_;
-  bool enableNormalArrowPublishing_;
-  bool enableDriftCorrectedTFPublishing_;
   bool useInitializerAtStart_;
   double initializeTfGridSize_;
-  std::atomic_int pointCloudProcessCounter_;
 };
 
 }  // namespace elevation_mapping_cupy
